@@ -10,9 +10,7 @@
 Access multiple AI providers instantly with `Alt+Space` → `ai explain quantum computing` → Done! ✨
 
 <!-- Badges -->
-<a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/actions/workflows/build-and-release.yml">
-  <img src="https://github.com/ruslanlap/PowerToysRun-QuickAi/actions/workflows/build-and-release.yml/badge.svg" alt="Build Status">
-</a>
+<a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/actions/workflows/build-and-release.yml"><img src="https://github.com/ruslanlap/PowerToysRun-QuickAi/actions/workflows/build-and-release.yml/badge.svg" alt="Build Status"></a>
 <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/latest">
   <img src="https://img.shields.io/github/v/release/ruslanlap/PowerToysRun-QuickAi?label=latest" alt="Latest Release">
 </a>
