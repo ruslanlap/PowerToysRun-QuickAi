@@ -10,6 +10,9 @@ bugfix
 *.userosscache
 *.sln.docstates
 CLAUDE.md
+PERFORMANCE_RECOMMENDATIONS.md
+QUICK_WINS.md
+SUMMARY_UA.md  
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 .github/data/

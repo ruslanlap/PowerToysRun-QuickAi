@@ -42,6 +42,11 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
         private const double DefaultTemperature = 0.2d;
         private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(10);
 
+        // Configurable timeout settings
+        private const int DefaultTimeoutSeconds = 8;
+        private const int MinTimeoutSeconds = 3;
+        private const int MaxTimeoutSeconds = 30;
+
         private static readonly List<string> SupportedProviders = new()
         {
             ProviderGroq,
@@ -75,6 +80,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
         private string _modelName = DefaultModelName;
         private int _maxTokens = DefaultMaxTokens;
         private double _temperature = DefaultTemperature;
+        private int _timeoutSeconds = DefaultTimeoutSeconds;
 
         private StreamingSession? _session;
         private bool _uiRefreshPending;
@@ -328,6 +334,18 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                             NumberBoxMax = 2.0,
                             NumberBoxSmallChange = 0.1,
                             NumberBoxLargeChange = 0.5
+                        },
+                        new()
+                        {
+                            Key = "quickai_timeout",
+                            DisplayLabel = "Request Timeout (seconds)",
+                            DisplayDescription = "Maximum time to wait for response. Lower = faster failure detection.",
+                            PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Numberbox,
+                            NumberValue = _timeoutSeconds,
+                            NumberBoxMin = MinTimeoutSeconds,
+                            NumberBoxMax = MaxTimeoutSeconds,
+                            NumberBoxSmallChange = 1,
+                            NumberBoxLargeChange = 5
                         }
                     };
                 }
@@ -393,13 +411,40 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
         {
             var handler = new SocketsHttpHandler
             {
-                AutomaticDecompression = DecompressionMethods.Brotli | DecompressionMethods.Deflate | DecompressionMethods.GZip
+                // HTTP/2 optimization
+                EnableMultipleHttp2Connections = true,
+
+                // Connection pooling
+                PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+                PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
+                MaxConnectionsPerServer = 10,
+
+                // Compression (was already present)
+                AutomaticDecompression = DecompressionMethods.Brotli |
+                                         DecompressionMethods.Deflate |
+                                         DecompressionMethods.GZip,
+
+                // Security optimization
+                SslOptions = new System.Net.Security.SslClientAuthenticationOptions
+                {
+                    EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12 |
+                                          System.Security.Authentication.SslProtocols.Tls13
+                },
+
+                // Performance tweak
+                UseCookies = false  // Not needed for API calls
             };
 
-            return new HttpClient(handler)
+            var client = new HttpClient(handler)
             {
-                Timeout = Timeout.InfiniteTimeSpan
+                Timeout = Timeout.InfiniteTimeSpan,
+
+                // HTTP/2 by default
+                DefaultRequestVersion = new Version(2, 0),
+                DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
             };
+
+            return client;
         }
 
         private void BeginStreaming(StreamingSession session)
@@ -502,7 +547,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
         {
             using var request = BuildHttpRequest(providerConfiguration, configuration, prompt, apiKey);
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(RequestTimeout);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(configuration.TimeoutSeconds));
 
             using var response = await HttpClient
                 .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeoutCts.Token)
@@ -515,9 +560,9 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
 
             response.EnsureSuccessStatusCode();
 
-            await foreach (var token in ParseStreamAsync(response, providerConfiguration, timeoutCts, cancellationToken).ConfigureAwait(false))
+            await foreach (var token in ParseStreamAsync(response, providerConfiguration, timeoutCts, configuration.TimeoutSeconds, cancellationToken).ConfigureAwait(false))
             {
-                timeoutCts.CancelAfter(RequestTimeout);
+                timeoutCts.CancelAfter(TimeSpan.FromSeconds(configuration.TimeoutSeconds));
                 yield return token;
             }
         }
@@ -526,6 +571,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             HttpResponseMessage response,
             ProviderConfiguration configuration,
             CancellationTokenSource timeoutSource,
+            int timeoutSeconds,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
@@ -573,7 +619,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
 
                 if (!string.IsNullOrEmpty(token))
                 {
-                    timeoutSource.CancelAfter(RequestTimeout);
+                    timeoutSource.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
                     yield return token;
                 }
             }
@@ -745,6 +791,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             _modelName = DefaultModelName;
             _maxTokens = DefaultMaxTokens;
             _temperature = DefaultTemperature;
+            _timeoutSeconds = DefaultTimeoutSeconds;
         }
 
         private void ApplySettings(IEnumerable<PluginAdditionalOption> options)
@@ -780,6 +827,13 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                     case TemperatureOptionKey:
                         _temperature = Math.Clamp(option.NumberValue, 0.0, 2.0);
                         break;
+                    case "quickai_timeout":
+                        _timeoutSeconds = (int)Math.Clamp(
+                            option.NumberValue,
+                            MinTimeoutSeconds,
+                            MaxTimeoutSeconds
+                        );
+                        break;
                 }
             }
         }
@@ -788,7 +842,14 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
         {
             lock (_sessionGate)
             {
-                return new ConfigurationSnapshot(_provider, _primaryApiKey, _secondaryApiKey, _modelName, _maxTokens, _temperature);
+                return new ConfigurationSnapshot(
+                    _provider,
+                    _primaryApiKey,
+                    _secondaryApiKey,
+                    _modelName,
+                    _maxTokens,
+                    _temperature,
+                    _timeoutSeconds);
             }
         }
 
@@ -839,7 +900,8 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             string? SecondaryApiKey,
             string Model,
             int MaxTokens,
-            double Temperature);
+            double Temperature,
+            int TimeoutSeconds);
 
         private readonly record struct ApiKeyCandidate(string Key, ApiKeyKind Kind);
 
@@ -859,6 +921,12 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             private string? _status;
             private bool _hasError;
             private bool _completed;
+
+            // UI Batching optimization
+            private int _chunksSinceLastRefresh = 0;
+            private const int ChunksPerRefresh = 3;  // Update UI every 3 chunks
+            private DateTime _lastRefreshTime = DateTime.UtcNow;
+            private static readonly TimeSpan MinRefreshInterval = TimeSpan.FromMilliseconds(150);
 
             public StreamingSession(Main owner, string rawQuery, string prompt)
             {
@@ -926,6 +994,10 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                     _status = null;
                     _hasError = false;
                     _completed = false;
+
+                    // Reset batching counters
+                    _chunksSinceLastRefresh = 0;
+                    _lastRefreshTime = DateTime.UtcNow;
                 }
 
                 _owner.BeginStreaming(this);
@@ -946,10 +1018,32 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                     return;
                 }
 
+                bool shouldRefresh = false;
+
                 lock (_sync)
                 {
                     _buffer.Append(text);
                     _status = null;
+                    _chunksSinceLastRefresh++;
+
+                    var timeSinceRefresh = DateTime.UtcNow - _lastRefreshTime;
+
+                    // Update UI if:
+                    // 1. Accumulated enough chunks (every 3 tokens) OR
+                    // 2. Enough time has passed (150ms for smoothness)
+                    if (_chunksSinceLastRefresh >= ChunksPerRefresh ||
+                        timeSinceRefresh >= MinRefreshInterval)
+                    {
+                        shouldRefresh = true;
+                        _chunksSinceLastRefresh = 0;
+                        _lastRefreshTime = DateTime.UtcNow;
+                    }
+                }
+
+                // Call refresh OUTSIDE of lock
+                if (shouldRefresh)
+                {
+                    _owner.TriggerRefresh(RawQuery);
                 }
             }
 
@@ -959,6 +1053,9 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 {
                     _completed = true;
                 }
+
+                // Always refresh UI when completed
+                _owner.TriggerRefresh(RawQuery);
             }
 
             public void SetStatus(string message)
@@ -984,6 +1081,14 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 lock (_sync)
                 {
                     return _prompt;
+                }
+            }
+
+            public string SnapshotResponse()
+            {
+                lock (_sync)
+                {
+                    return _buffer.ToString();
                 }
             }
 
