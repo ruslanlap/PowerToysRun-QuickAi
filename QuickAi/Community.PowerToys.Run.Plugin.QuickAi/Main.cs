@@ -29,6 +29,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
         private const string ProviderFireworks = "Fireworks";
         private const string ProviderOpenRouter = "OpenRouter";
         private const string ProviderCohere = "Cohere";
+        private const string ProviderGoogle = "Google";
 
         private const string ProviderOptionKey = "quickai_provider";
         private const string PrimaryKeyOptionKey = "quickai_primary_key";
@@ -53,17 +54,19 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             ProviderTogether,
             ProviderFireworks,
             ProviderOpenRouter,
-            ProviderCohere
+            ProviderCohere,
+            ProviderGoogle
         };
 
         private static readonly IReadOnlyDictionary<string, ProviderConfiguration> ProviderConfigurations =
             new Dictionary<string, ProviderConfiguration>(StringComparer.OrdinalIgnoreCase)
             {
-                [ProviderGroq] = new("https://api.groq.com/openai/v1/chat/completions", UsesOpenAiSchema: true),
-                [ProviderTogether] = new("https://api.together.xyz/v1/chat/completions", UsesOpenAiSchema: true),
-                [ProviderFireworks] = new("https://api.fireworks.ai/inference/v1/chat/completions", UsesOpenAiSchema: true),
-                [ProviderOpenRouter] = new("https://openrouter.ai/api/v1/chat/completions", UsesOpenAiSchema: true),
-                [ProviderCohere] = new("https://api.cohere.com/v1/chat", UsesOpenAiSchema: false)
+                [ProviderGroq] = new("https://api.groq.com/openai/v1/chat/completions", ProviderSchemaType.OpenAI),
+                [ProviderTogether] = new("https://api.together.xyz/v1/chat/completions", ProviderSchemaType.OpenAI),
+                [ProviderFireworks] = new("https://api.fireworks.ai/inference/v1/chat/completions", ProviderSchemaType.OpenAI),
+                [ProviderOpenRouter] = new("https://openrouter.ai/api/v1/chat/completions", ProviderSchemaType.OpenAI),
+                [ProviderCohere] = new("https://api.cohere.com/v1/chat", ProviderSchemaType.Cohere),
+                [ProviderGoogle] = new("https://generativelanguage.googleapis.com/v1beta", ProviderSchemaType.Google)
             };
 
         private static readonly HttpClient HttpClient = CreateHttpClient();
@@ -608,9 +611,13 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 try
                 {
                     using var document = JsonDocument.Parse(payload);
-                    token = configuration.UsesOpenAiSchema
-                        ? ExtractOpenAiDelta(document.RootElement)
-                        : ExtractCohereDelta(document.RootElement);
+                    token = configuration.SchemaType switch
+                    {
+                        ProviderSchemaType.OpenAI => ExtractOpenAiDelta(document.RootElement),
+                        ProviderSchemaType.Cohere => ExtractCohereDelta(document.RootElement),
+                        ProviderSchemaType.Google => ExtractGoogleDelta(document.RootElement),
+                        _ => null
+                    };
                 }
                 catch (JsonException)
                 {
@@ -631,8 +638,85 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             string prompt,
             string apiKey)
         {
-            var request = new HttpRequestMessage(HttpMethod.Post, providerConfiguration.Endpoint);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+            string endpoint = providerConfiguration.Endpoint;
+            string json;
+
+            // Build request based on provider schema type
+            switch (providerConfiguration.SchemaType)
+            {
+                case ProviderSchemaType.Google:
+                    // Google uses model in URL and API key as query parameter
+                    endpoint = $"{providerConfiguration.Endpoint}/models/{configuration.Model}:streamGenerateContent?key={apiKey}";
+                    var googlePayload = new
+                    {
+                        contents = new[]
+                        {
+                            new
+                            {
+                                parts = new[]
+                                {
+                                    new { text = prompt }
+                                }
+                            }
+                        },
+                        generationConfig = new
+                        {
+                            temperature = configuration.Temperature,
+                            maxOutputTokens = configuration.MaxTokens
+                        }
+                    };
+                    json = JsonSerializer.Serialize(googlePayload, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+                    });
+                    break;
+
+                case ProviderSchemaType.Cohere:
+                    var coherePayload = new
+                    {
+                        model = configuration.Model,
+                        message = prompt,
+                        stream = true,
+                        temperature = configuration.Temperature,
+                        max_tokens = configuration.MaxTokens
+                    };
+                    json = JsonSerializer.Serialize(coherePayload, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+                    });
+                    break;
+
+                case ProviderSchemaType.OpenAI:
+                default:
+                    var openAiPayload = new
+                    {
+                        model = configuration.Model,
+                        messages = new[]
+                        {
+                            new { role = "user", content = prompt }
+                        },
+                        stream = true,
+                        temperature = configuration.Temperature,
+                        max_tokens = configuration.MaxTokens
+                    };
+                    json = JsonSerializer.Serialize(openAiPayload, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+                    });
+                    break;
+            }
+
+            var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
+
+            // Google uses API key in URL, others use Authorization header
+            if (providerConfiguration.SchemaType != ProviderSchemaType.Google)
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+            }
+
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             request.Headers.UserAgent.ParseAdd("PowerToys-QuickAI/1.0");
@@ -642,43 +726,6 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             {
                 request.Headers.TryAddWithoutValidation("HTTP-Referer", "https://github.com/microsoft/PowerToys");
                 request.Headers.TryAddWithoutValidation("X-Title", "PowerToys Run QuickAI");
-            }
-
-            string json;
-            if (providerConfiguration.UsesOpenAiSchema)
-            {
-                var contentPayload = new
-                {
-                    model = configuration.Model,
-                    messages = new[]
-                    {
-                        new { role = "user", content = prompt }
-                    },
-                    stream = true,
-                    temperature = configuration.Temperature,
-                    max_tokens = configuration.MaxTokens
-                };
-                json = JsonSerializer.Serialize(contentPayload, new JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-                });
-            }
-            else
-            {
-                var contentPayload = new
-                {
-                    model = configuration.Model,
-                    message = prompt,
-                    stream = true,
-                    temperature = configuration.Temperature,
-                    max_tokens = configuration.MaxTokens
-                };
-                json = JsonSerializer.Serialize(contentPayload, new JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-                });
             }
 
             request.Content = new StringContent(json, Encoding.UTF8, new MediaTypeHeaderValue("application/json"));
@@ -892,7 +939,14 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             _context?.API?.ShowMsg(title, subtitle);
         }
 
-        private sealed record ProviderConfiguration(string Endpoint, bool UsesOpenAiSchema);
+        private enum ProviderSchemaType
+        {
+            OpenAI,
+            Cohere,
+            Google
+        }
+
+        private sealed record ProviderConfiguration(string Endpoint, ProviderSchemaType SchemaType);
 
         private sealed record ConfigurationSnapshot(
             string Provider,
