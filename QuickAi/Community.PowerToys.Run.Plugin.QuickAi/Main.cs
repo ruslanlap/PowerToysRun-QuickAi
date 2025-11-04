@@ -781,6 +781,34 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             return null;
         }
 
+        private static string? ExtractGoogleDelta(JsonElement root)
+        {
+            // Google AI Studio streaming format: {"candidates":[{"content":{"parts":[{"text":"chunk"}]}}]}
+            if (!root.TryGetProperty("candidates", out var candidates) || candidates.GetArrayLength() == 0)
+            {
+                return null;
+            }
+
+            var candidate = candidates[0];
+            if (!candidate.TryGetProperty("content", out var content))
+            {
+                return null;
+            }
+
+            if (!content.TryGetProperty("parts", out var parts) || parts.GetArrayLength() == 0)
+            {
+                return null;
+            }
+
+            var part = parts[0];
+            if (part.TryGetProperty("text", out var text) && text.ValueKind == JsonValueKind.String)
+            {
+                return text.GetString();
+            }
+
+            return null;
+        }
+
         private void UpdateIconPath(Theme theme) => _iconPath = theme == Theme.Light || theme == Theme.HighContrastWhite 
             ? Path.Combine(_context?.CurrentPluginMetadata?.PluginDirectory ?? string.Empty, "Images", "ai.light.png")
             : Path.Combine(_context?.CurrentPluginMetadata?.PluginDirectory ?? string.Empty, "Images", "ai.dark.png");
