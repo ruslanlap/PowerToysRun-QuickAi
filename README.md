@@ -515,21 +515,6 @@ If QuickAI boosts your productivity, consider starring the repo and sharing with
 
 </details>
 
-<details>
-<summary><b>"Show full response" only shows partial text?</b></summary>
-
-From [issue #3](https://github.com/ruslanlap/PowerToysRun-QuickAi/issues/3#issuecomment-3681606400): this is **expected** when the AI response is truncated by settings, not a UI bug. The provider stops early if token limits or timeouts are too low, so the modal only shows the first words.
-
-**What to do**
-- ✅ **Increase Max Tokens**: Try 2048–4096 to allow full answers.
-- ✅ **Raise Request Timeout**: Low timeouts can cut responses.
-- ✅ **Provider limits**: Some providers enforce their own caps.
-- ℹ️ **Temperature**: Only affects creativity, not length.
-
-If you still need the full text, press `Ctrl+C` in the result list to copy the complete response.
-
-</details>
-
 ---
 
 ## ❓ FAQ
