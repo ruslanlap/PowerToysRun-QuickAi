@@ -31,6 +31,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
         private const string ProviderCohere = "Cohere";
         private const string ProviderGoogle = "Google";
         private const string ProviderOllama = "Ollama";
+        private const string ProviderOpenAICompatible = "OpenAI Compatible";
 
         private const string ProviderOptionKey = "quickai_provider";
         private const string PrimaryKeyOptionKey = "quickai_primary_key";
@@ -59,7 +60,8 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             ProviderOpenRouter,
             ProviderCohere,
             ProviderGoogle,
-            ProviderOllama
+            ProviderOllama,
+            ProviderOpenAICompatible
         };
 
         private static readonly IReadOnlyDictionary<string, ProviderConfiguration> ProviderConfigurations =
@@ -71,7 +73,8 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 [ProviderOpenRouter] = new("https://openrouter.ai/api/v1/chat/completions", ProviderSchemaType.OpenAI),
                 [ProviderCohere] = new("https://api.cohere.com/v1/chat", ProviderSchemaType.Cohere),
                 [ProviderGoogle] = new("https://generativelanguage.googleapis.com/v1beta", ProviderSchemaType.Google),
-                [ProviderOllama] = new("http://localhost:11434/v1/chat/completions", ProviderSchemaType.OpenAI)
+                [ProviderOllama] = new("http://localhost:11434/v1/chat/completions", ProviderSchemaType.OpenAI),
+                [ProviderOpenAICompatible] = new("http://localhost/v1/chat/completions", ProviderSchemaType.OpenAI)
             };
 
         private static readonly HttpClient HttpClient = CreateHttpClient();
@@ -359,8 +362,8 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                         new()
                         {
                             Key = OllamaHostOptionKey,
-                            DisplayLabel = "Ollama Host URL",
-                            DisplayDescription = "Host URL for local Ollama instance (e.g., http://localhost:11434).",
+                            DisplayLabel = "Custom Base URL (Ollama / OpenAI Compatible)",
+                            DisplayDescription = "Base URL (e.g. https://api.deepseek.com or http://localhost:11434).",
                             PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Textbox,
                             TextValue = _ollamaHost
                         }
@@ -656,7 +659,8 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             string json;
 
             // Override endpoint for Ollama with custom host
-            if (string.Equals(configuration.Provider, ProviderOllama, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(configuration.Provider, ProviderOllama, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(configuration.Provider, ProviderOpenAICompatible, StringComparison.OrdinalIgnoreCase))
             {
                 endpoint = $"{configuration.OllamaHost.TrimEnd('/')}/v1/chat/completions";
             }
