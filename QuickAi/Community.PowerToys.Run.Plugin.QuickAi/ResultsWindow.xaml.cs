@@ -15,7 +15,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
         public void AppendText(string text)
         {
             // keep UI thread safety
-            Dispatcher.Invoke(() =>
+            Dispatcher.BeginInvoke(() =>
             {
                 // now use a sampler way to append text
                 // just add a new Run to the Paragraph Inlines

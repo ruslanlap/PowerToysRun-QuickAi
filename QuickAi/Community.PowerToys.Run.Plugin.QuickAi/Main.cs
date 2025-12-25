@@ -433,6 +433,9 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
         // open or activate the results window
         private void OpenResultsWindow(StreamingSession session)
         {
+            // clear the query box if user open the results window
+            _context?.API?.ChangeQuery(string.Empty, false);
+
             Application.Current.Dispatcher.Invoke(() =>
             {
                 if (_resultsWindow == null || !_resultsWindow.IsLoaded)
@@ -461,20 +464,15 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
 
                 // subscribe to subsequent streaming updates
                 // first unsubscribe old subscription to prevent duplicates
-                session.TokenReceived -= OnTokenReceived; 
+                session.TokenReceived -= OnTokenReceived;
                 session.TokenReceived += OnTokenReceived;
             });
         }
 
-        
-
         // handle streaming updates
         private void OnTokenReceived(string text)
         {
-            if (_resultsWindow != null && _resultsWindow.IsLoaded)
-            {
-                _resultsWindow.AppendText(text);
-            }
+            _resultsWindow?.AppendText(text);
         }
 
         private static HttpClient CreateHttpClient()
@@ -956,7 +954,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 {
                     return true;
                 }
-                
+
                 return !string.IsNullOrWhiteSpace(_primaryApiKey) || !string.IsNullOrWhiteSpace(_secondaryApiKey);
             }
         }
@@ -1299,12 +1297,12 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                     {
                         // Split response into lines for better display
                         var lines = responseText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                        
+
                         if (lines.Length > 0)
                         {
                             // Show first line as title
                             title = lines[0].Length > 100 ? lines[0].Substring(0, 97) + "..." : lines[0];
-                            
+
                             // Show second line or status as subtitle
                             if (lines.Length > 1)
                             {
