@@ -446,6 +446,16 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                     _resultsWindow.Activate();
                 }
 
+                // Apply current PowerToys theme to window (best-effort)
+                try
+                {
+                    var theme = _context?.API?.GetCurrentTheme() ?? Theme.Dark;
+                    _resultsWindow?.ApplyTheme(theme == Theme.Light || theme == Theme.HighContrastWhite ? "light" : "dark");
+                }
+                catch
+                {
+                }
+
                 // initialize with current snapshot
                 _resultsWindow.SetFullText(session.SnapshotResponse());
 
@@ -455,6 +465,8 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 session.TokenReceived += OnTokenReceived;
             });
         }
+
+        
 
         // handle streaming updates
         private void OnTokenReceived(string text)
@@ -885,7 +897,20 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             ? Path.Combine(_context?.CurrentPluginMetadata?.PluginDirectory ?? string.Empty, "Images", "ai.light.png")
             : Path.Combine(_context?.CurrentPluginMetadata?.PluginDirectory ?? string.Empty, "Images", "ai.dark.png");
 
-        private void OnThemeChanged(Theme currentTheme, Theme newTheme) => UpdateIconPath(newTheme);
+        private void OnThemeChanged(Theme currentTheme, Theme newTheme)
+        {
+            UpdateIconPath(newTheme);
+
+            // Update results window appearance if it's open (pass strict lowercase)
+            try
+            {
+                _resultsWindow?.ApplyTheme(newTheme == Theme.Light || newTheme == Theme.HighContrastWhite ? "light" : "dark");
+            }
+            catch
+            {
+                // ignore errors to avoid affecting host
+            }
+        }
 
         private void StartQuery(string rawQuery, string search)
         {
