@@ -52,6 +52,9 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
         private const int MinTimeoutSeconds = 3;
         private const int MaxTimeoutSeconds = 30;
 
+        // The Result Window handles streaming display
+        private ResultsWindow? _resultsWindow;
+
         private static readonly List<string> SupportedProviders = new()
         {
             ProviderGroq,
@@ -222,15 +225,15 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                         AcceleratorModifiers = ModifierKeys.None,
                         Action = _ =>
                         {
-                            try
+                            lock (_sessionGate)
                             {
-                                ShowInfo("QuickAI Response", responseText);
-                                return true;
+                                if (_session != null)
+                                {
+                                    OpenResultsWindow(_session);
+                                    return true;
+                                }
                             }
-                            catch
-                            {
-                                return false;
-                            }
+                            return false;
                         },
                     },
                     new ContextMenuResult
@@ -425,6 +428,51 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             }
 
             _disposed = true;
+        }
+
+        // open or activate the results window
+        private void OpenResultsWindow(StreamingSession session)
+        {
+            // clear the query box if user open the results window
+            _context?.API?.ChangeQuery(string.Empty, false);
+
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                if (_resultsWindow == null || !_resultsWindow.IsLoaded)
+                {
+                    _resultsWindow = new ResultsWindow();
+                    _resultsWindow.Closed += (_, _) => _resultsWindow = null;
+                    _resultsWindow.Show();
+                }
+                else
+                {
+                    _resultsWindow.Activate();
+                }
+
+                // Apply current PowerToys theme to window (best-effort)
+                try
+                {
+                    var theme = _context?.API?.GetCurrentTheme() ?? Theme.Dark;
+                    _resultsWindow?.ApplyTheme(theme == Theme.Light || theme == Theme.HighContrastWhite ? "light" : "dark");
+                }
+                catch
+                {
+                }
+
+                // initialize with current snapshot
+                _resultsWindow.SetFullText(session.SnapshotResponse());
+
+                // subscribe to subsequent streaming updates
+                // first unsubscribe old subscription to prevent duplicates
+                session.TokenReceived -= OnTokenReceived;
+                session.TokenReceived += OnTokenReceived;
+            });
+        }
+
+        // handle streaming updates
+        private void OnTokenReceived(string text)
+        {
+            _resultsWindow?.AppendText(text);
         }
 
         private static HttpClient CreateHttpClient()
@@ -847,7 +895,20 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             ? Path.Combine(_context?.CurrentPluginMetadata?.PluginDirectory ?? string.Empty, "Images", "ai.light.png")
             : Path.Combine(_context?.CurrentPluginMetadata?.PluginDirectory ?? string.Empty, "Images", "ai.dark.png");
 
-        private void OnThemeChanged(Theme currentTheme, Theme newTheme) => UpdateIconPath(newTheme);
+        private void OnThemeChanged(Theme currentTheme, Theme newTheme)
+        {
+            UpdateIconPath(newTheme);
+
+            // Update results window appearance if it's open (pass strict lowercase)
+            try
+            {
+                _resultsWindow?.ApplyTheme(newTheme == Theme.Light || newTheme == Theme.HighContrastWhite ? "light" : "dark");
+            }
+            catch
+            {
+                // ignore errors to avoid affecting host
+            }
+        }
 
         private void StartQuery(string rawQuery, string search)
         {
@@ -893,7 +954,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 {
                     return true;
                 }
-                
+
                 return !string.IsNullOrWhiteSpace(_primaryApiKey) || !string.IsNullOrWhiteSpace(_secondaryApiKey);
             }
         }
@@ -1064,6 +1125,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             }
 
             public string RawQuery { get; }
+            public event Action<string>? TokenReceived;
 
             public CancellationToken Token
             {
@@ -1168,6 +1230,9 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                     }
                 }
 
+                // Connect token received event
+                TokenReceived?.Invoke(text);
+
                 // Call refresh OUTSIDE of lock
                 if (shouldRefresh)
                 {
@@ -1232,12 +1297,12 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                     {
                         // Split response into lines for better display
                         var lines = responseText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                        
+
                         if (lines.Length > 0)
                         {
                             // Show first line as title
                             title = lines[0].Length > 100 ? lines[0].Substring(0, 97) + "..." : lines[0];
-                            
+
                             // Show second line or status as subtitle
                             if (lines.Length > 1)
                             {
@@ -1275,7 +1340,10 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                         SubTitle = subtitle,
                         IcoPath = iconPath,
                         Score = 100,
-                        Action = action => CopyToClipboard(),
+                        Action = action => {
+                            _owner.OpenResultsWindow(this);
+                            return true;
+                        },
                         ContextData = responseText
                     };
                 }
