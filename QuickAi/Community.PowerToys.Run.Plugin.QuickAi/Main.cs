@@ -460,7 +460,10 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 }
 
                 // initialize with current snapshot
-                _resultsWindow.SetFullText(session.SnapshotResponse());
+                if (_resultsWindow != null)
+                {
+                    _resultsWindow.SetFullText(session.SnapshotResponse());
+                }
 
                 // subscribe to subsequent streaming updates
                 // first unsubscribe old subscription to prevent duplicates

@@ -3,6 +3,7 @@ using System;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -14,7 +15,6 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
         private readonly StringBuilder _fullText = new();
         private string _currentTheme = "dark";
         private bool _wordWrapEnabled = true;
-        private bool _isStreaming = false;
 
         // Theme colors
         private static readonly Color DarkBackground = Color.FromRgb(0x1E, 0x1E, 0x1E);
@@ -48,7 +48,6 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             Dispatcher.BeginInvoke(() =>
             {
                 _fullText.Append(text);
-                _isStreaming = true;
                 StatusText.Visibility = Visibility.Visible;
                 
                 // Re-render the entire document with markdown
@@ -64,7 +63,6 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             {
                 _fullText.Clear();
                 _fullText.Append(text ?? string.Empty);
-                _isStreaming = false;
                 StatusText.Visibility = Visibility.Collapsed;
                 
                 RenderMarkdown(_fullText.ToString());
@@ -76,7 +74,6 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
         {
             Dispatcher.Invoke(() =>
             {
-                _isStreaming = false;
                 StatusText.Visibility = Visibility.Collapsed;
             });
         }
@@ -212,7 +209,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             // Language label if present
             if (!string.IsNullOrWhiteSpace(language))
             {
-                var langPara = new Paragraph(new Run(language))
+                var langPara = new Paragraph(new System.Windows.Documents.Run(language))
                 {
                     FontFamily = new FontFamily("Segoe UI"),
                     FontSize = 11,
@@ -235,7 +232,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 LineHeight = 20,
             };
 
-            codePara.Inlines.Add(new Run(code.TrimEnd()));
+            codePara.Inlines.Add(new System.Windows.Documents.Run(code.TrimEnd()));
             section.Blocks.Add(codePara);
 
             return section;
@@ -261,35 +258,35 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 // Determine match type and create inline
                 if (match.Groups[2].Success) // **bold**
                 {
-                    inlines.Add(new Bold(new Run(match.Groups[2].Value))
+                    inlines.Add(new Bold(new System.Windows.Documents.Run(match.Groups[2].Value))
                     {
                         Foreground = new SolidColorBrush(textColor)
                     });
                 }
                 else if (match.Groups[4].Success) // __bold__
                 {
-                    inlines.Add(new Bold(new Run(match.Groups[4].Value))
+                    inlines.Add(new Bold(new System.Windows.Documents.Run(match.Groups[4].Value))
                     {
                         Foreground = new SolidColorBrush(textColor)
                     });
                 }
                 else if (match.Groups[6].Success) // *italic*
                 {
-                    inlines.Add(new Italic(new Run(match.Groups[6].Value))
+                    inlines.Add(new Italic(new System.Windows.Documents.Run(match.Groups[6].Value))
                     {
                         Foreground = new SolidColorBrush(textColor)
                     });
                 }
                 else if (match.Groups[8].Success) // _italic_
                 {
-                    inlines.Add(new Italic(new Run(match.Groups[8].Value))
+                    inlines.Add(new Italic(new System.Windows.Documents.Run(match.Groups[8].Value))
                     {
                         Foreground = new SolidColorBrush(textColor)
                     });
                 }
                 else if (match.Groups[10].Success) // `code`
                 {
-                    var codeRun = new Run(match.Groups[10].Value)
+                    var codeRun = new System.Windows.Documents.Run(match.Groups[10].Value)
                     {
                         FontFamily = new FontFamily("Cascadia Code, Consolas, Courier New"),
                         Foreground = new SolidColorBrush(codeTextColor),
@@ -324,7 +321,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 }
                 if (!string.IsNullOrEmpty(lines[i]))
                 {
-                    inlines.Add(new Run(lines[i]) { Foreground = new SolidColorBrush(textColor) });
+                    inlines.Add(new System.Windows.Documents.Run(lines[i]) { Foreground = new SolidColorBrush(textColor) });
                 }
             }
 
