@@ -1,0 +1,17 @@
+<Window x:Class="Community.PowerToys.Run.Plugin.QuickAI.ResultsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="QuickAI Response"
+        Height="600"
+        Width="800"
+        WindowStartupLocation="CenterScreen"
+        Background="#202020">
+    <Grid>
+        <FlowDocumentScrollViewer Name="OutputViewer" Padding="20">
+            <FlowDocument FontFamily="Segoe UI" FontSize="14" Foreground="#E0E0E0" PagePadding="0">
+                <Paragraph Name="MainParagraph">
+                </Paragraph>
+            </FlowDocument>
+        </FlowDocumentScrollViewer>
+    </Grid>
+</Window>
