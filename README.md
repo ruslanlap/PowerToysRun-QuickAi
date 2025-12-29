@@ -640,6 +640,7 @@ Released under the [MIT License](LICENSE). Free for personal and commercial use.
 
 **Special Thanks:**
 - [@fuzhiyin-7](https://github.com/fuzhiyin-7) - For suggesting Ollama integration, bringing local AI support to QuickAI! 🎉
+- [@WuJunkai2004](https://github.com/WuJunkai2004) (Wu Junkai) - For ideas and contributions that inspired the major UI overhaul with dedicated ResultsWindow, markdown rendering, and improved user experience in v1.1.1! 🎨✨
 
 ---
 

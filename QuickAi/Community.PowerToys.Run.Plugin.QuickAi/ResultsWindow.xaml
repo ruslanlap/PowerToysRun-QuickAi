@@ -41,7 +41,7 @@
             <Setter Property="Margin" Value="2,0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="FontSize" Value="12"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="Inter, Segoe UI Variable, Segoe UI"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -91,8 +91,10 @@
                     <TextBlock Text="&#xE8BD;" FontFamily="Segoe MDL2 Assets" FontSize="16" 
                                VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#0078D4"/>
                     <TextBlock Text="QuickAI Response" FontSize="14" FontWeight="SemiBold" 
+                               FontFamily="Inter, Segoe UI Variable, Segoe UI"
                                VerticalAlignment="Center" Name="TitleText"/>
                     <TextBlock Text=" · Streaming" FontSize="12" Foreground="#A0A0A0" 
+                               FontFamily="Inter, Segoe UI Variable, Segoe UI"
                                VerticalAlignment="Center" Name="StatusText" Visibility="Collapsed"/>
                 </StackPanel>
                 
@@ -135,7 +137,7 @@
                                       IsToolBarVisible="False"
                                       Zoom="100">
                 <FlowDocument Name="OutputDocument"
-                              FontFamily="Cascadia Code, Consolas, Segoe UI"
+                              FontFamily="Inter, Segoe UI Variable, Segoe UI"
                               FontSize="14"
                               Foreground="#E4E4E4"
                               Background="Transparent"
@@ -162,12 +164,14 @@
                            Name="CharCountText" 
                            Text="0 characters" 
                            FontSize="11" 
+                           FontFamily="Inter, Segoe UI Variable, Segoe UI"
                            Foreground="#A0A0A0"
                            VerticalAlignment="Center"/>
                 
                 <TextBlock Grid.Column="1" 
                            Text="Ctrl+C to copy · Esc to close" 
                            FontSize="11" 
+                           FontFamily="Inter, Segoe UI Variable, Segoe UI"
                            Foreground="#606060"
                            VerticalAlignment="Center"/>
             </Grid>

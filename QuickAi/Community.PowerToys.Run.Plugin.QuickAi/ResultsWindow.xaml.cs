@@ -211,7 +211,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             {
                 var langPara = new Paragraph(new System.Windows.Documents.Run(language))
                 {
-                    FontFamily = new FontFamily("Segoe UI"),
+                    FontFamily = new FontFamily("Inter, Segoe UI Variable, Segoe UI"),
                     FontSize = 11,
                     Foreground = new SolidColorBrush(Color.FromRgb(0x80, 0x80, 0x80)),
                     Margin = new Thickness(0, 0, 0, 4),
@@ -223,7 +223,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
 
             var codePara = new Paragraph
             {
-                FontFamily = new FontFamily("Cascadia Code, Consolas, Courier New"),
+                FontFamily = new FontFamily("JetBrains Mono, Cascadia Code, Consolas, Courier New"),
                 FontSize = 13,
                 Background = new SolidColorBrush(bgColor),
                 Foreground = new SolidColorBrush(codeColor),
@@ -288,7 +288,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 {
                     var codeRun = new System.Windows.Documents.Run(match.Groups[10].Value)
                     {
-                        FontFamily = new FontFamily("Cascadia Code, Consolas, Courier New"),
+                        FontFamily = new FontFamily("JetBrains Mono, Cascadia Code, Consolas, Courier New"),
                         Foreground = new SolidColorBrush(codeTextColor),
                         Background = new SolidColorBrush(codeBgColor),
                     };

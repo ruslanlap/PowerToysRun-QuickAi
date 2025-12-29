@@ -28,17 +28,28 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     -h|--help)
-      echo "Usage: $0 [-t|--tag TAG_NAME] [-r|--remote REMOTE_NAME] [-f|--force]"
+      echo "Usage: $0 [TAG_NAME] [-t|--tag TAG_NAME] [-r|--remote REMOTE_NAME] [-f|--force]"
       echo "Options:"
-      echo "  -t, --tag TAG_NAME     Specify the tag name (default: v1.0.0)"
+      echo "  TAG_NAME              Tag name as positional argument (e.g., v1.1.2-dev-prev)"
+      echo "  -t, --tag TAG_NAME     Specify the tag name (default: v1.0.1)"
       echo "  -r, --remote REMOTE    Specify the remote name (default: origin)"
       echo "  -f, --force           Skip confirmation prompts"
       echo "  -h, --help            Show this help message"
       exit 0
       ;;
-    *)
+    -*)
       echo "Unknown option: $1"
       exit 1
+      ;;
+    *)
+      # Positional argument - treat as tag name if not already set
+      if [ "$TAG_NAME" = "v1.0.1" ]; then
+        TAG_NAME="$1"
+      else
+        echo "Error: Multiple tag names specified. Use -t/--tag or positional argument, not both."
+        exit 1
+      fi
+      shift
       ;;
   esac
 done
@@ -88,8 +99,9 @@ git push --atomic --no-verify $REMOTE_NAME $TAG_NAME
 echo "✅ Tag $TAG_NAME has been rebuilt and pushed to $REMOTE_NAME."
 
 echo "🎉 Done!"
-echo "🚀 GitHub Actions workflow should start soon at: https://github.com/ruslanlap/PowerToysRun-CheatSheets/actions"
+echo "🚀 GitHub Actions workflow should start soon at: https://github.com/ruslanlap/PowerToysRun-QuickAi/actions"
 
 # Display estimated completion time
 echo "⏱️ Estimated completion time: ~5 minutes"
+
 

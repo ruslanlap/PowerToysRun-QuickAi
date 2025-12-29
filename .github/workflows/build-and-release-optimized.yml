@@ -246,29 +246,33 @@ jobs:
           
           ## ✨ What's New in v$VERSION
           
-          ### 🎉 Major Feature: Local AI with Ollama!
+          ### 🎨 Major UI Overhaul: Dedicated Results Window!
           
-          Run AI models **completely offline** on your own machine with **zero API costs**!
+          Replaced the static MessageBox with a beautiful, dedicated WPF window for displaying AI responses!
           
-          - 🏠 **Full Privacy**: All processing happens locally - no data leaves your computer
-          - 💰 **Zero Cost**: Unlimited queries with no API fees
-          - 🚀 **Fast**: No network latency, instant responses
-          - 🔧 **Flexible**: Use any Ollama model - llama3.2, mistral, qwen2.5, deepseek-r1, etc.
-          - ⚙️ **Customizable**: Configure custom host URL for remote Ollama instances
+          - 🪟 **New Results Window**: Full-featured window with FlowDocument for rich text rendering
+          - 📝 **Markdown Support**: Proper rendering of **bold**, *italic*, `code blocks`, and inline code
+          - 🎨 **Modern Typography**: Inter font for UI and JetBrains Mono for code (matching Cursor editor style)
+          - 🌓 **Dynamic Theme Support**: Automatic light/dark mode with real-time theme updates
+          - 🔄 **Real-time Streaming**: Token-by-token updates directly in the results window
+          - 📋 **Enhanced UX**: Copy button, word wrap toggle, character counter, and keyboard shortcuts
+          - 🧹 **Clean Interface**: Query box automatically clears when opening results window
+          - 📜 **Auto-scroll**: Automatically scrolls to bottom as new content streams in
           
-          **Big thanks to [@fuzhiyin-7](https://github.com/fuzhiyin-7) for suggesting this feature!**
+          **Special thanks to [@WuJunkai2004](https://github.com/WuJunkai2004) (Wu Junkai) for the ideas and contributions that inspired this major UI improvement!**
           
           ---
           
           **QuickAi** brings AI-powered assistance directly to PowerToys Run! Get instant answers from multiple AI providers with streaming responses.
           
           ### 🚀 All Features:
-          - **Multi-Provider Support**: Groq, Together, Fireworks, OpenRouter, Cohere, Google, **Ollama (NEW!)**
+          - **Multi-Provider Support**: Groq, Together, Fireworks, OpenRouter, Cohere, Google, Ollama
           - **Local AI**: Run models offline with Ollama - complete privacy, zero cost
+          - **Dedicated Results Window**: Full-featured window for viewing AI responses with markdown rendering
           - **Streaming Responses**: Real-time AI answers as they're generated
           - **Configurable Models**: Choose your preferred AI model and parameters
-          - **Theme-Aware UI**: Automatic light/dark mode support
-          - **Context Menu Actions**: Copy responses, restart queries
+          - **Theme-Aware UI**: Automatic light/dark mode support with dynamic theme switching
+          - **Context Menu Actions**: Copy responses, restart queries, show full response
           
           ### 🎯 Quick Start (Cloud Providers):
           1. Download the ZIP for your platform (x64 or ARM64)
