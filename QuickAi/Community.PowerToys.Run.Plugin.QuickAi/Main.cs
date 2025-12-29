@@ -330,11 +330,11 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                         {
                             Key = MaxTokensOptionKey,
                             DisplayLabel = "Max Tokens",
-                            DisplayDescription = "Limits response length (lower values return faster).",
+                            DisplayDescription = "Limits response length. Use 0 or -1 for unlimited (model decides).",
                             PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Numberbox,
                             NumberValue = _maxTokens,
-                            NumberBoxMin = 16,
-                            NumberBoxMax = 4096,
+                            NumberBoxMin = -1,
+                            NumberBoxMax = 128000,
                             NumberBoxSmallChange = 16,
                             NumberBoxLargeChange = 128
                         },
@@ -466,6 +466,12 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 // first unsubscribe old subscription to prevent duplicates
                 session.TokenReceived -= OnTokenReceived;
                 session.TokenReceived += OnTokenReceived;
+
+                // If already completed, notify the window
+                if (session.HasCompleted)
+                {
+                    _resultsWindow.SetStreamingComplete();
+                }
             });
         }
 
@@ -473,6 +479,15 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
         private void OnTokenReceived(string text)
         {
             _resultsWindow?.AppendText(text);
+        }
+
+        // notify window that streaming is complete
+        private void NotifyStreamingComplete()
+        {
+            Application.Current?.Dispatcher?.BeginInvoke(() =>
+            {
+                _resultsWindow?.SetStreamingComplete();
+            });
         }
 
         private static HttpClient CreateHttpClient()
@@ -713,12 +728,18 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 endpoint = $"{configuration.OllamaHost.TrimEnd('/')}/v1/chat/completions";
             }
 
+            // Check if max_tokens should be included (<=0 means unlimited/omit)
+            var includeMaxTokens = configuration.MaxTokens > 0;
+
             // Build request based on provider schema type
             switch (providerConfiguration.SchemaType)
             {
                 case ProviderSchemaType.Google:
                     // Google uses model in URL, API key in header, and alt=sse for streaming
                     endpoint = $"{providerConfiguration.Endpoint}/models/{configuration.Model}:streamGenerateContent?alt=sse";
+                    object googleGenerationConfig = includeMaxTokens
+                        ? new { temperature = configuration.Temperature, maxOutputTokens = configuration.MaxTokens }
+                        : new { temperature = configuration.Temperature };
                     var googlePayload = new
                     {
                         contents = new[]
@@ -731,11 +752,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                                 }
                             }
                         },
-                        generationConfig = new
-                        {
-                            temperature = configuration.Temperature,
-                            maxOutputTokens = configuration.MaxTokens
-                        }
+                        generationConfig = googleGenerationConfig
                     };
                     json = JsonSerializer.Serialize(googlePayload, new JsonSerializerOptions
                     {
@@ -745,14 +762,22 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                     break;
 
                 case ProviderSchemaType.Cohere:
-                    var coherePayload = new
-                    {
-                        model = configuration.Model,
-                        message = prompt,
-                        stream = true,
-                        temperature = configuration.Temperature,
-                        max_tokens = configuration.MaxTokens
-                    };
+                    var coherePayload = includeMaxTokens
+                        ? new Dictionary<string, object>
+                        {
+                            ["model"] = configuration.Model,
+                            ["message"] = prompt,
+                            ["stream"] = true,
+                            ["temperature"] = configuration.Temperature,
+                            ["max_tokens"] = configuration.MaxTokens
+                        }
+                        : new Dictionary<string, object>
+                        {
+                            ["model"] = configuration.Model,
+                            ["message"] = prompt,
+                            ["stream"] = true,
+                            ["temperature"] = configuration.Temperature
+                        };
                     json = JsonSerializer.Serialize(coherePayload, new JsonSerializerOptions
                     {
                         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -762,17 +787,22 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
 
                 case ProviderSchemaType.OpenAI:
                 default:
-                    var openAiPayload = new
-                    {
-                        model = configuration.Model,
-                        messages = new[]
+                    var openAiPayload = includeMaxTokens
+                        ? new Dictionary<string, object>
                         {
-                            new { role = "user", content = prompt }
-                        },
-                        stream = true,
-                        temperature = configuration.Temperature,
-                        max_tokens = configuration.MaxTokens
-                    };
+                            ["model"] = configuration.Model,
+                            ["messages"] = new[] { new { role = "user", content = prompt } },
+                            ["stream"] = true,
+                            ["temperature"] = configuration.Temperature,
+                            ["max_tokens"] = configuration.MaxTokens
+                        }
+                        : new Dictionary<string, object>
+                        {
+                            ["model"] = configuration.Model,
+                            ["messages"] = new[] { new { role = "user", content = prompt } },
+                            ["stream"] = true,
+                            ["temperature"] = configuration.Temperature
+                        };
                     json = JsonSerializer.Serialize(openAiPayload, new JsonSerializerOptions
                     {
                         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -999,7 +1029,9 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                         _modelName = string.IsNullOrWhiteSpace(option.TextValue) ? DefaultModelName : option.TextValue.Trim();
                         break;
                     case MaxTokensOptionKey:
-                        _maxTokens = (int)Math.Clamp(option.NumberValue <= 0 ? DefaultMaxTokens : option.NumberValue, 16, 4096);
+                        // Allow -1 or 0 for unlimited, otherwise clamp to valid range
+                        var tokenValue = (int)option.NumberValue;
+                        _maxTokens = tokenValue <= 0 ? tokenValue : Math.Clamp(tokenValue, 1, 128000);
                         break;
                     case TemperatureOptionKey:
                         _temperature = Math.Clamp(option.NumberValue, 0.0, 2.0);
@@ -1246,6 +1278,9 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 {
                     _completed = true;
                 }
+
+                // Notify window that streaming is complete
+                _owner.NotifyStreamingComplete();
 
                 // Always refresh UI when completed
                 _owner.TriggerRefresh(RawQuery);
