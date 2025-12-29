@@ -16,7 +16,7 @@ Access multiple AI providers instantly with `Alt+Space` → `ai explain quantum 
 </a>
 <img src="https://img.shields.io/maintenance/yes/2025" alt="Maintenance">
 <img src="https://img.shields.io/badge/C%23-.NET%209.0-512BD4" alt="C# .NET 9.0">
-<img src="https://img.shields.io/badge/version-v1.1.0-brightgreen" alt="Version">
+<img src="https://img.shields.io/badge/version-v1.1.1-brightgreen" alt="Version">
 <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
 <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/stargazers">
   <img src="https://img.shields.io/github/stars/ruslanlap/PowerToysRun-QuickAi" alt="GitHub stars">
@@ -41,10 +41,10 @@ Access multiple AI providers instantly with `Alt+Space` → `ai explain quantum 
 </div>
 
 <div align="center">
-  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.1.0/QuickAi-1.1.0-x64.zip">
+  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.1.1/QuickAi-1.1.1-x64.zip">
     <img src="https://img.shields.io/badge/⬇️_DOWNLOAD-x64-blue?style=for-the-badge&logo=github" alt="Download x64">
   </a>
-  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.1.0/QuickAi-1.1.0-ARM64.zip">
+  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.1.1/QuickAi-1.1.1-ARM64.zip">
     <img src="https://img.shields.io/badge/⬇️_DOWNLOAD-ARM64-blue?style=for-the-badge&logo=github" alt="Download ARM64">
   </a>
 </div>
@@ -83,10 +83,10 @@ Alt+Space → ai translate to french  # 🌍 Language tasks
   
   **⬇️ Ready to boost your productivity?**
   
-  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.1.0/QuickAi-1.1.0-x64.zip">
+  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.1.1/QuickAi-1.1.1-x64.zip">
     <img src="https://img.shields.io/badge/Download_for-x64_Windows-0078d4?style=for-the-badge&logo=windows&logoColor=white" alt="Download x64">
   </a>
-  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.1.0/QuickAi-1.1.0-ARM64.zip">
+  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.1.1/QuickAi-1.1.1-ARM64.zip">
     <img src="https://img.shields.io/badge/Download_for-ARM64_Windows-0078d4?style=for-the-badge&logo=windows&logoColor=white" alt="Download ARM64">
   </a>
 </div>
@@ -94,6 +94,7 @@ Alt+Space → ai translate to french  # 🌍 Language tasks
 ## 🧭 Table of Contents
 
 - [Overview](#-overview)
+- [Recent Changelog](#-recent-changelog)
 - [Features](#-features)
 - [Supported AI Providers](#-supported-ai-providers)
 - [Demo](#-demo)
@@ -123,6 +124,42 @@ Alt+Space → ai translate to french  # 🌍 Language tasks
 - **Action Keyword:** `ai` or change to `quickai`
 - **Platform:** Windows 10/11 (x64, ARM64)
 - **Tech:** C#/.NET 9.0, WPF, PowerToys Run API
+
+---
+
+## 📋 Recent Changelog
+
+### 🎨 v1.1.1 - UI Overhaul & Enhanced Experience
+
+<div align="center">
+<img src="assets/v1.1.1.png" alt="QuickAI v1.1.1 - New Results Window" width="800">
+</div>
+
+**Major UI Improvements:**
+- 🪟 **New Dedicated Results Window**: Replaced static MessageBox with a beautiful, full-featured WPF window
+- 📝 **Markdown Rendering**: Proper support for **bold**, *italic*, `code blocks`, and inline code
+- 🎨 **Modern Typography**: Inter font for UI and JetBrains Mono for code (matching Cursor editor style)
+- 🌓 **Dynamic Theme Support**: Automatic light/dark mode with real-time theme updates when system theme changes
+- 🔄 **Real-time Streaming**: Token-by-token updates directly in the results window
+- 📋 **Enhanced UX**: Copy button, word wrap toggle, character counter, and keyboard shortcuts (Ctrl+C, Esc)
+- 🧹 **Clean Interface**: Query box automatically clears when opening results window
+- 📜 **Auto-scroll**: Automatically scrolls to bottom as new content streams in
+
+**Thanks to [@WuJunkai2004](https://github.com/WuJunkai2004) (Wu Junkai) for the ideas and contributions!**
+
+---
+
+### 🎉 v1.1.0 - Local AI with Ollama
+
+**Major Feature:**
+- 🏠 **Local AI Support**: Run AI models completely offline on your own machine with **zero API costs**
+- 🔒 **Full Privacy**: All processing happens locally - no data leaves your computer
+- 💰 **Zero Cost**: Unlimited queries with no API fees
+- 🚀 **Fast**: No network latency, instant responses
+- 🔧 **Flexible**: Use any Ollama model - llama3.2, mistral, qwen2.5, deepseek-r1, etc.
+- ⚙️ **Customizable**: Configure custom host URL for remote Ollama instances
+
+**Thanks to [@fuzhiyin-7](https://github.com/fuzhiyin-7) for suggesting this feature!**
 
 ---
 
@@ -177,6 +214,8 @@ Alt+Space → ai translate to french  # 🌍 Language tasks
 | **Ollama** 🆕 | `http://localhost:11434/v1/chat/completions` | `llama3.2` | OpenAI |
 
 > 🎉 **New in v1.1.0**: Local AI with Ollama support! Run models on your own machine with zero API costs. Thanks to [@fuzhiyin-7](https://github.com/fuzhiyin-7) for the idea!
+> 
+> 🎨 **New in v1.1.1**: Dedicated Results Window with markdown rendering, modern typography (Inter & JetBrains Mono), dynamic theme support, and enhanced UX! Thanks to [@WuJunkai2004](https://github.com/WuJunkai2004) for the ideas!
 
 ---
 
@@ -196,6 +235,9 @@ Alt+Space → ai translate to french  # 🌍 Language tasks
 ### Multiple Use Cases
 <img src="assets/demo5.png" alt="Various Use Cases" width="700">
 
+### New Results Window (v1.1.1)
+<img src="assets/v1.1.1.png" alt="New Results Window with Markdown Support" width="800">
+
 </div>
 
 ---
@@ -205,7 +247,7 @@ Alt+Space → ai translate to french  # 🌍 Language tasks
 ### 1️⃣ **Download & Extract** (15 seconds)
 ```bash
 # Choose your architecture
-wget https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.1.0/QuickAi-1.1.0-x64.zip
+wget https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.1.1/QuickAi-1.1.1-x64.zip
 # Extract to PowerToys plugin directory
 ```
 
