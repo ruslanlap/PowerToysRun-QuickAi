@@ -1,0 +1,226 @@
+name: Build Dev Preview
+
+on:
+  push:
+    branches:
+      - dev  # Auto-build when dev branch updates
+  pull_request:
+    branches:
+      - dev  # Build PRs targeting dev
+      - master  # Build PRs targeting master (for hotfixes)
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to build (leave empty for current)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+  DOTNET_NOLOGO: 'true'
+  MSBUILDDISABLENODEREUSE: '1'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        platform: [x64, ARM64]
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for proper version detection
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Extract version (Dev Preview)
+        id: version
+        shell: pwsh
+        run: |
+          # Generate dev preview version
+          $baseVersion = "1.2.0"  # Next version
+          $shortSha = "${{ github.sha }}".Substring(0,7)
+          $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+
+          $version = if ($env:GITHUB_EVENT_NAME -eq 'pull_request') {
+            $prNumber = "${{ github.event.pull_request.number }}"
+            "${baseVersion}-pr${prNumber}-${shortSha}"
+          } elseif ($env:GITHUB_REF -match 'refs/heads/(.+)') {
+            $branch = $matches[1] -replace '[/\\]', '-'
+            "${baseVersion}-${branch}-${shortSha}"
+          } else {
+            "${baseVersion}-dev-${shortSha}"
+          }
+
+          "VERSION=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Dev Preview Version: $version"
+
+      - name: Build with optimizations
+        shell: pwsh
+        run: |
+          $buildArgs = @(
+            'QuickAi/QuickAi.sln',
+            '-c', 'Release',
+            '-p:Platform=${{ matrix.platform }}',
+            '-p:UseSharedCompilation=false',
+            '-p:BuildInParallel=true',
+            '-p:ContinuousIntegrationBuild=true',
+            '-p:Deterministic=true',
+            '-p:DebugType=embedded',  # Keep symbols for dev builds
+            '-p:DebugSymbols=true',   # Easier debugging
+            '--nologo',
+            '-v:minimal'
+          )
+          dotnet build @buildArgs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Prepare artifacts (dev preview)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = '${{ steps.version.outputs.VERSION }}'
+          $platform = '${{ matrix.platform }}'
+
+          $buildPath = "QuickAi/Community.PowerToys.Run.Plugin.QuickAi/bin/$platform/Release/net9.0-windows10.0.22621.0"
+          $artifactPath = "artifacts/QuickAi-v$version-$platform/QuickAi"
+          $zipPath = "artifacts/QuickAi-$version-$platform.zip"
+
+          [void](New-Item -ItemType Directory -Force -Path $artifactPath)
+
+          robocopy "$buildPath" "$artifactPath" /E /NFL /NDL /NJH /NJS /NC /NS /NP
+          if ($LASTEXITCODE -ge 8) {
+            Write-Error "Robocopy failed with exit code $LASTEXITCODE"
+            exit 1
+          }
+          $LASTEXITCODE = 0
+
+          # Remove PowerToys dependencies
+          $filesToRemove = @(
+            'PowerToys.Common.UI.dll', 'PowerToys.Common.UI.pdb',
+            'PowerToys.ManagedCommon.dll', 'PowerToys.ManagedCommon.pdb',
+            'PowerToys.Settings.UI.Lib.dll', 'PowerToys.Settings.UI.Lib.pdb',
+            'Wox.Infrastructure.dll', 'Wox.Infrastructure.pdb',
+            'Wox.Plugin.dll', 'Wox.Plugin.pdb'
+          )
+
+          foreach ($file in $filesToRemove) {
+            $filePath = Join-Path $artifactPath $file
+            if (Test-Path $filePath -PathType Leaf) {
+              [System.IO.File]::Delete($filePath)
+            }
+          }
+
+          # Create ZIP
+          Add-Type -Assembly System.IO.Compression.FileSystem
+          $compressionLevel = [System.IO.Compression.CompressionLevel]::Optimal
+          [System.IO.Compression.ZipFile]::CreateFromDirectory(
+            (Resolve-Path "artifacts/QuickAi-v$version-$platform").Path,
+            (Join-Path (Get-Location) $zipPath),
+            $compressionLevel,
+            $false
+          )
+
+          Write-Host "✓ Created $zipPath"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: quickai-dev-${{ matrix.platform }}
+          path: artifacts/*.zip
+          retention-days: 14  # Keep dev builds for 2 weeks
+
+  comment-on-pr:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Extract version
+        id: version
+        run: |
+          # Extract version from first zip filename
+          VERSION=$(ls artifacts/*.zip | head -1 | sed -E 's/.*QuickAi-([^-]+-pr[0-9]+-[a-f0-9]+)-.*/\1/')
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Generate checksums
+        run: |
+          cd artifacts
+          for file in *.zip; do
+            sha256sum "$file" | awk '{print toupper($1) "  " $2}' > "${file}.sha256"
+          done
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const artifactsDir = 'artifacts';
+            const files = fs.readdirSync(artifactsDir).filter(f => f.endsWith('.zip'));
+
+            let comment = `## 🔨 Dev Preview Build Ready\n\n`;
+            comment += `**Version:** \`${{ steps.version.outputs.VERSION }}\`\n`;
+            comment += `**Commit:** ${{ github.sha }}\n\n`;
+            comment += `### 📦 Download Test Builds\n\n`;
+            comment += `Download the artifacts from the [Actions run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) to test this PR.\n\n`;
+
+            comment += `**Available builds:**\n`;
+            files.forEach(file => {
+              const platform = file.includes('x64') ? 'x64' : 'ARM64';
+              comment += `- ${platform}: \`${file}\`\n`;
+            });
+
+            comment += `\n### 📋 Testing Checklist\n\n`;
+            comment += `- [ ] Download and extract the build for your platform\n`;
+            comment += `- [ ] Copy to \`%LOCALAPPDATA%\\Microsoft\\PowerToys\\PowerToys Run\\Plugins\\QuickAi\\\`\n`;
+            comment += `- [ ] Restart PowerToys\n`;
+            comment += `- [ ] Test basic query functionality\n`;
+            comment += `- [ ] Test streaming window (if applicable)\n`;
+            comment += `- [ ] Test theme switching (Dark/Light)\n`;
+            comment += `- [ ] Check for crashes or errors\n`;
+
+            comment += `\n### ⚠️ Security Review Required\n\n`;
+            comment += `Before merging, ensure:\n`;
+            comment += `- [ ] No XSS vulnerabilities in XAML/UI rendering\n`;
+            comment += `- [ ] Proper input sanitization\n`;
+            comment += `- [ ] No unsafe Dispatcher.Invoke usage\n`;
+            comment += `- [ ] Thread-safe UI updates\n`;
+            comment += `- [ ] Proper resource disposal\n`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
