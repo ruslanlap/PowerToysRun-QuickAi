@@ -404,3 +404,11 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# compressed files created during publishing
+*.zip
+
+# target files and middle files created during publishing
+QuickAi/Publish/*
+QuickAi/Community.PowerToys.Run.Plugin.QuickAi/obj/*
+QuickAi/Community.PowerToys.Run.Plugin.QuickAi/bin/*
