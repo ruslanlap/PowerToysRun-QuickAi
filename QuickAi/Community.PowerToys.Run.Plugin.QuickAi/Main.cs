@@ -558,11 +558,20 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             var prompt = session.SnapshotPrompt();
             var apiKeys = EnumerateApiKeys(configuration.PrimaryApiKey, configuration.SecondaryApiKey).ToList();
 
+            // Ollama doesn't require an API key - add a dummy entry to allow the request to proceed
+            var isOllama = string.Equals(configuration.Provider, ProviderOllama, StringComparison.OrdinalIgnoreCase);
             if (apiKeys.Count == 0)
             {
-                session.SetError("Configure an API key to use this provider.");
-                TriggerRefresh(session.RawQuery);
-                return;
+                if (isOllama)
+                {
+                    apiKeys.Add(new ApiKeyCandidate(string.Empty, ApiKeyKind.Primary));
+                }
+                else
+                {
+                    session.SetError("Configure an API key to use this provider.");
+                    TriggerRefresh(session.RawQuery);
+                    return;
+                }
             }
 
             foreach (var candidate in apiKeys)
