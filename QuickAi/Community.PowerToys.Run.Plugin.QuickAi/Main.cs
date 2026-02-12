@@ -43,7 +43,18 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
         private const string OllamaHostOptionKey = "quickai_ollama_host";
         private const string SystemPromptOptionKey = "quickai_system_prompt";
         private const string AttachScreenshotOptionKey = "quickai_attach_screenshot";
+        private const string CustomCommandsOptionKey = "quickai_custom_commands";
         private const string DefaultOllamaHost = "http://localhost:11434";
+
+        // Built-in quick commands (prefix /)
+        private static readonly List<(string Name, string Prompt, string Description)> BuiltInCommands = new()
+        {
+            ("/read", "Read and extract all text from this image", "📸 Read text from clipboard image"),
+            ("/explain", "Explain this code step by step", "💻 Explain code from clipboard image"),
+            ("/summarize", "Summarize the following content concisely", "📝 Summarize text or content"),
+            ("/translate", "Translate the following to English", "🌍 Translate to English"),
+            ("/fix", "Find and fix bugs in this code", "🐛 Fix bugs in code"),
+        };
 
         private const string DefaultModelName = "llama-3.1-8b-instant";
         private const int DefaultMaxTokens = 128;
@@ -101,6 +112,8 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
         private string _ollamaHost = DefaultOllamaHost;
         private string _systemPrompt = string.Empty;
         private bool _attachScreenshot = false;
+        private string _customCommandsRaw = string.Empty;
+        private List<(string Name, string Prompt, string Description)> _userCommands = new();
 
         private StreamingSession? _session;
         private bool _uiRefreshPending;
@@ -164,12 +177,13 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 if (string.IsNullOrEmpty(search))
                 {
                     _pendingPrompt = string.Empty;
-                    return new List<Result>
+                    var emptyResults = new List<Result>
                     {
                         BuildInfoResult(
                             "Type your question after \"ai\"",
-                            "Example: ai explain recursion in simple terms.")
+                            "Example: ai explain recursion in simple terms.  |  Type / for quick commands")
                     };
+                    return emptyResults;
                 }
 
                 if (!HasConfiguredApiKey())
@@ -186,6 +200,16 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 if (_session is not null)
                 {
                     return new List<Result> { _session.BuildResult(_iconPath, _provider, _modelName) };
+                }
+
+                // Quick commands: show matching commands when input starts with /
+                if (search.StartsWith("/", StringComparison.Ordinal))
+                {
+                    var commandResults = BuildQuickCommandResults(rawQuery, search);
+                    if (commandResults.Count > 0)
+                    {
+                        return commandResults;
+                    }
                 }
 
                 // Otherwise, show prompt ready to submit
@@ -391,6 +415,14 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                             DisplayDescription = "When enabled, sends the current clipboard image with your query (requires a vision-capable model).",
                             PluginOptionType = PluginAdditionalOption.AdditionalOptionType.CheckboxAndTextbox,
                             Value = _attachScreenshot
+                        },
+                        new()
+                        {
+                            Key = CustomCommandsOptionKey,
+                            DisplayLabel = "Custom Quick Commands",
+                            DisplayDescription = "Add your own /commands. Format: /name=prompt; /name2=prompt2  (e.g. /review=Review this code for best practices; /eli5=Explain like I'm 5)",
+                            PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Textbox,
+                            TextValue = _customCommandsRaw
                         }
                     };
                 }
@@ -1109,6 +1141,8 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             _ollamaHost = DefaultOllamaHost;
             _systemPrompt = string.Empty;
             _attachScreenshot = false;
+            _customCommandsRaw = string.Empty;
+            _userCommands = new();
         }
 
         private void ApplySettings(IEnumerable<PluginAdditionalOption> options)
@@ -1162,6 +1196,10 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                     case AttachScreenshotOptionKey:
                         _attachScreenshot = option.Value;
                         break;
+                    case CustomCommandsOptionKey:
+                        _customCommandsRaw = option.TextValue?.Trim() ?? string.Empty;
+                        _userCommands = ParseCustomCommands(_customCommandsRaw);
+                        break;
                 }
             }
         }
@@ -1182,6 +1220,89 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                     _systemPrompt,
                     _attachScreenshot);
             }
+        }
+
+        private List<Result> BuildQuickCommandResults(string rawQuery, string search)
+        {
+            var results = new List<Result>();
+            var filter = search.ToLowerInvariant();
+            var imageHint = _attachScreenshot ? " · 📎 Clipboard image" : string.Empty;
+
+            // Combine built-in and user commands
+            var allCommands = new List<(string Name, string Prompt, string Description)>(BuiltInCommands);
+            allCommands.AddRange(_userCommands);
+
+            var score = 1000;
+            foreach (var (name, prompt, description) in allCommands)
+            {
+                // Show all commands for "/" or filter by typed prefix
+                if (filter == "/" || name.StartsWith(filter, StringComparison.OrdinalIgnoreCase))
+                {
+                    var commandPrompt = prompt;
+                    // If user typed extra text after the command name (e.g. "/translate to French"),
+                    // append it to the prompt
+                    var extraText = string.Empty;
+                    if (search.Length > name.Length && search.StartsWith(name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        extraText = search.Substring(name.Length).Trim();
+                        if (!string.IsNullOrEmpty(extraText))
+                        {
+                            commandPrompt = $"{prompt}: {extraText}";
+                        }
+                    }
+
+                    var capturedPrompt = commandPrompt;
+                    var capturedRawQuery = rawQuery;
+                    results.Add(new Result
+                    {
+                        Title = $"{name}  —  {description}",
+                        SubTitle = $"{prompt}{imageHint}  |  {_provider} · {_modelName}",
+                        IcoPath = _iconPath,
+                        Score = score--,
+                        Action = _ =>
+                        {
+                            StartQuery(capturedRawQuery, capturedPrompt);
+                            return false;
+                        }
+                    });
+                }
+            }
+
+            return results;
+        }
+
+        private static List<(string Name, string Prompt, string Description)> ParseCustomCommands(string raw)
+        {
+            var commands = new List<(string Name, string Prompt, string Description)>();
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                return commands;
+            }
+
+            // Format: /name=prompt text; /name2=prompt text2
+            foreach (var entry in raw.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                var eqIndex = entry.IndexOf('=');
+                if (eqIndex <= 0 || eqIndex >= entry.Length - 1)
+                {
+                    continue;
+                }
+
+                var name = entry.Substring(0, eqIndex).Trim();
+                var prompt = entry.Substring(eqIndex + 1).Trim();
+
+                if (!name.StartsWith("/", StringComparison.Ordinal))
+                {
+                    name = "/" + name;
+                }
+
+                if (!string.IsNullOrEmpty(prompt))
+                {
+                    commands.Add((name, prompt, $"⚡ {name.TrimStart('/')} (custom)"));
+                }
+            }
+
+            return commands;
         }
 
         private Result BuildInfoResult(string title, string subtitle, Func<bool>? action = null)

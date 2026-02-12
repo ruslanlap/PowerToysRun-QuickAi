@@ -144,7 +144,7 @@ Configure persistent instructions that are sent before every query across all AI
 Attach screenshots and images directly to your queries for vision/multimodal AI models!
 
 <!-- Screenshot placeholder: Screenshot Reading Example -->
-<img src="assets/v1.2.0-screenshot-reading.png" alt="Screenshot Reading Example" width="700">
+<img src="assets/111.png" alt="Screenshot Reading Example" width="700">
 <br><em>QuickAI reading text from a clipboard screenshot - perfect for code analysis, error messages, and visual content</em>
 
 #### 🎨 Enhanced UI Indicators
@@ -173,6 +173,22 @@ Visual feedback when image attachment is enabled with 📎 indicator in the quer
 - 📊 **Data Interpretation**: Screenshot charts/graphs and ask for analysis  
 - 🖼️ **Visual Content**: Process images, diagrams, and visual information
 - 🎭 **Consistent AI Behavior**: Set custom personality or response style
+
+#### ⚡ Quick Commands
+Type `/` to instantly access built-in and custom commands — no need to type full prompts!
+
+| Command | Description |
+|---------|-------------|
+| `/read` | 📸 Read text from clipboard image |
+| `/explain` | 💻 Explain code step by step |
+| `/summarize` | 📝 Summarize content concisely |
+| `/translate` | 🌍 Translate to English |
+| `/fix` | 🐛 Find and fix bugs in code |
+
+**Add your own commands** in settings:
+```
+/review=Review this code for best practices; /eli5=Explain like I'm 5; /tweet=Write a tweet about this
+```
 
 **Thanks to [@ELGUAPOLIFE](https://github.com/ELGUAPOLIFE) for the feature request ([#13](https://github.com/ruslanlap/PowerToysRun-QuickAi/issues/13))!**
 
@@ -375,17 +391,29 @@ ai write a poem about programming
 ai brainstorm ideas for a mobile app
 ai create a product description for headphones
 
-# 📸 Vision & Screenshot Tasks (NEW!)
+# ⚡ Quick Commands (NEW! Type / to see all)
+ai /read          # 📸 Read text from clipboard screenshot
+ai /explain       # 💻 Explain code from clipboard image
+ai /summarize     # 📝 Summarize content
+ai /translate     # 🌍 Translate to English
+ai /fix           # 🐛 Find and fix bugs in code
+
+# 📸 Vision & Screenshot Tasks
 ai what does this error message mean? 📎 (with clipboard screenshot)
 ai explain this code snippet 📎 (with clipboard screenshot)
 ai read the text from this image 📎 (with clipboard screenshot)
-ai analyze this chart/graph 📎 (with clipboard screenshot)
 
 # 💬 System Prompt Examples
 # Set system prompt to "You are a concise assistant" then:
 ai explain quantum computing
 # Set system prompt to "You are a helpful coding tutor" then:
 ai debug this python code
+
+# ⚙️ Custom Commands (add your own in settings!)
+# /review=Review this code for best practices
+# /eli5=Explain like I'm 5
+ai /review        # Uses your custom prompt
+ai /eli5          # Uses your custom prompt
 ```
 
 </div>
@@ -428,6 +456,10 @@ ai debug this python code
   - Requires vision-capable models (GPT-4V, Gemini Pro Vision, etc.)
   - Shows 📎 indicator when enabled
   - Great for code analysis, error messages, charts, and visual content
+- **Quick Commands**: Type `/` to see built-in commands (`/read`, `/explain`, `/summarize`, `/translate`, `/fix`)
+  - Add your own custom commands in settings
+  - Format: `/name=prompt; /name2=prompt2`
+  - Append extra text: `ai /translate to French` sends "Translate the following to English: to French"
 
 ### Provider-Specific Settings
 - **Groq**: Best for speed with Llama models
@@ -716,6 +748,11 @@ Your queries are sent to the chosen AI provider's API. Check each provider's pri
 <details>
 <summary><b>Can I use it offline?</b></summary>
 Cloud providers (Groq, Together, etc.) require internet. **NEW**: With Ollama, you can run AI completely offline on your local machine!
+</details>
+
+<details>
+<summary><b>How do I use Quick Commands?</b></summary>
+Type <code>ai /</code> to see all available commands. Built-in commands include <code>/read</code>, <code>/explain</code>, <code>/summarize</code>, <code>/translate</code>, <code>/fix</code>. You can also add your own custom commands in PowerToys Settings → QuickAI → Custom Quick Commands using the format: <code>/name=prompt; /name2=prompt2</code>
 </details>
 
 <details>
