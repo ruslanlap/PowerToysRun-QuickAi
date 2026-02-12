@@ -129,53 +129,32 @@ Alt+Space → ai translate to french  # 🌍 Language tasks
 
 ## 📋 Recent Changelog
 
-### 💬 v1.2.0 - Custom System Prompt & Clipboard Image Attachment
+### 💬 v1.2.0 - System Prompt, Clipboard Image & Quick Commands
 
 <div align="center">
 
-#### 🎯 Custom System Prompt
-Configure persistent instructions that are sent before every query across all AI providers!
+#### 📸 Clipboard Image Attachment
+Attach screenshots directly to your queries — AI reads and analyzes image content!
 
-<!-- Screenshot placeholder: System Prompt Settings -->
-<img src="assets/v1.2.0-system-prompt.png" alt="System Prompt Setting" width="700">
-<br><em>Configure custom system instructions like "You are a concise assistant" for consistent AI behavior</em>
+<img src="assets/222.png" alt="PowerToys Run with clipboard image indicator" width="700">
+<br><em>📎 Clipboard image indicator shows when image attachment is active</em>
 
-#### 📸 Clipboard Image Attachment 
-Attach screenshots and images directly to your queries for vision/multimodal AI models!
+<br>
 
-<!-- Screenshot placeholder: Screenshot Reading Example -->
-<img src="assets/111.png" alt="Screenshot Reading Example" width="700">
-<br><em>QuickAI reading text from a clipboard screenshot - perfect for code analysis, error messages, and visual content</em>
-
-#### 🎨 Enhanced UI Indicators
-Visual feedback when image attachment is enabled with 📎 indicator in the query subtitle.
-
-<!-- Screenshot placeholder: UI with Image Indicator -->
-<img src="assets/v1.2.0-ui-indicator.png" alt="Image Attachment UI Indicator" width="700">
-<br><em>Clear visual feedback when clipboard image attachment is active</em>
+<img src="assets/111.png" alt="QuickAI reading text from screenshot" width="700">
+<br><em>QuickAI Response window — send "read text from image" with a clipboard screenshot</em>
 
 </div>
 
 **New Features:**
-- 💬 **Custom System Prompt**: Persistent instructions sent before every query (works across all providers)
-  - OpenAI: `role: system` message format
-  - Google: `systemInstruction` field  
-  - Cohere: `preamble` field
+- 💬 **Custom System Prompt**: Persistent instructions sent before every query (e.g. "You are a concise assistant")
+  - OpenAI: `role: system` · Google: `systemInstruction` · Cohere: `preamble`
 - 📸 **Clipboard Image Attachment**: Send clipboard images with queries for vision models
-  - OpenAI-compatible: `image_url` format
-  - Google: `inlineData` format
-  - UI shows 📎 indicator when active
-- 🎯 **Provider-Aware Payloads**: Restructured request building for cleaner system prompt and image injection
-- 📋 **Enhanced Settings**: New configuration options in PowerToys settings panel
-
-**Perfect for:**
-- 📝 **Code Analysis**: Screenshot code and ask "explain this error"
-- 📊 **Data Interpretation**: Screenshot charts/graphs and ask for analysis  
-- 🖼️ **Visual Content**: Process images, diagrams, and visual information
-- 🎭 **Consistent AI Behavior**: Set custom personality or response style
+  - OpenAI: `image_url` · Google: `inlineData` · UI shows 📎 when active
+- ⚡ **Quick Commands**: Type `/` to see built-in commands — no need to type full prompts!
+- ⚙️ **Custom Commands**: Add your own `/commands` in settings
 
 #### ⚡ Quick Commands
-Type `/` to instantly access built-in and custom commands — no need to type full prompts!
 
 | Command | Description |
 |---------|-------------|
@@ -185,9 +164,9 @@ Type `/` to instantly access built-in and custom commands — no need to type fu
 | `/translate` | 🌍 Translate to English |
 | `/fix` | 🐛 Find and fix bugs in code |
 
-**Add your own commands** in settings:
+**Add your own** in settings (`Custom Quick Commands`):
 ```
-/review=Review this code for best practices; /eli5=Explain like I'm 5; /tweet=Write a tweet about this
+/review=Review this code for best practices; /eli5=Explain like I'm 5
 ```
 
 **Thanks to [@ELGUAPOLIFE](https://github.com/ELGUAPOLIFE) for the feature request ([#13](https://github.com/ruslanlap/PowerToysRun-QuickAi/issues/13))!**
@@ -327,14 +306,12 @@ Type `/` to instantly access built-in and custom commands — no need to type fu
 ### New Results Window (v1.1.1)
 <img src="assets/v1.1.1.png" alt="New Results Window with Markdown Support" width="800">
 
-### Custom System Prompt (v1.2.0)
-<img src="assets/v1.2.0-system-prompt.png" alt="System Prompt Configuration" width="800">
+### Clipboard Image & Quick Commands (v1.2.0)
+<img src="assets/222.png" alt="PowerToys Run with clipboard image indicator" width="700">
+<br><sub>📎 Clipboard image indicator in PowerToys Run</sub>
 
-### Clipboard Image Attachment (v1.2.0)
-<img src="assets/v1.2.0-screenshot-reading.png" alt="Screenshot Reading Example" width="800">
-
-### Image Attachment UI Indicator (v1.2.0)
-<img src="assets/v1.2.0-ui-indicator.png" alt="Image Attachment UI Indicator" width="800">
+<img src="assets/111.png" alt="QuickAI reading text from screenshot" width="700">
+<br><sub>QuickAI Response window with clipboard image query</sub>
 
 </div>
 
