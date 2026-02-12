@@ -16,7 +16,7 @@ Access multiple AI providers instantly with `Alt+Space` → `ai explain quantum 
 </a>
 <img src="https://img.shields.io/maintenance/yes/2025" alt="Maintenance">
 <img src="https://img.shields.io/badge/C%23-.NET%209.0-512BD4" alt="C# .NET 9.0">
-<img src="https://img.shields.io/badge/version-v1.2.0-brightgreen" alt="Version">
+<img src="https://img.shields.io/badge/version-v1.2.1-brightgreen" alt="Version">
 <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
 <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/stargazers">
   <img src="https://img.shields.io/github/stars/ruslanlap/PowerToysRun-QuickAi" alt="GitHub stars">
@@ -41,10 +41,10 @@ Access multiple AI providers instantly with `Alt+Space` → `ai explain quantum 
 </div>
 
 <div align="center">
-  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.2.0/QuickAi-1.2.0-x64.zip">
+  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.2.1/QuickAi-1.2.1-x64.zip">
     <img src="https://img.shields.io/badge/⬇️_DOWNLOAD-x64-blue?style=for-the-badge&logo=github" alt="Download x64">
   </a>
-  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.2.0/QuickAi-1.2.0-ARM64.zip">
+  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.2.1/QuickAi-1.2.1-ARM64.zip">
     <img src="https://img.shields.io/badge/⬇️_DOWNLOAD-ARM64-blue?style=for-the-badge&logo=github" alt="Download ARM64">
   </a>
 </div>
@@ -83,10 +83,10 @@ Alt+Space → ai translate to french  # 🌍 Language tasks
   
   **⬇️ Ready to boost your productivity?**
   
-  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.2.0/QuickAi-1.2.0-x64.zip">
+  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.2.1/QuickAi-1.2.1-x64.zip">
     <img src="https://img.shields.io/badge/Download_for-x64_Windows-0078d4?style=for-the-badge&logo=windows&logoColor=white" alt="Download x64">
   </a>
-  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.2.0/QuickAi-1.2.0-ARM64.zip">
+  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.2.1/QuickAi-1.2.1-ARM64.zip">
     <img src="https://img.shields.io/badge/Download_for-ARM64_Windows-0078d4?style=for-the-badge&logo=windows&logoColor=white" alt="Download ARM64">
   </a>
 </div>
@@ -128,6 +128,21 @@ Alt+Space → ai translate to french  # 🌍 Language tasks
 ---
 
 ## 📋 Recent Changelog
+
+### ⚡ v1.2.1 - Quick Commands & Clipboard Text Auto-Read
+
+**Quick Commands System:**
+- Type `ai /` to see all available commands instantly
+- Built-in commands: `/read`, `/explain`, `/summarize`, `/translate`, `/fix`
+- **Clipboard Text Auto-Read**: Commands automatically grab text from clipboard when no extra text typed
+  - `ai /translate` → translates clipboard text
+  - `ai /summarize` → summarizes clipboard content
+- **Custom Quick Commands**: Add your own commands in settings
+  - Format: `/name=prompt; /name2=prompt2`
+  - Example: `/review=Review this code for best practices; /eli5=Explain like I'm 5`
+- **UI Fix**: Custom Quick Commands setting now visible (fixed Checkbox type issue)
+
+---
 
 ### 💬 v1.2.0 - System Prompt, Clipboard Image & Quick Commands
 
@@ -322,7 +337,7 @@ Attach screenshots directly to your queries — AI reads and analyzes image cont
 ### 1️⃣ **Download & Extract** (15 seconds)
 ```bash
 # Choose your architecture
-wget https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.2.0/QuickAi-1.2.0-x64.zip
+wget https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.2.1/QuickAi-1.2.1-x64.zip
 # Extract to PowerToys plugin directory
 ```
 
