@@ -18,6 +18,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media.Imaging;
 using Wox.Plugin;
 
 namespace Community.PowerToys.Run.Plugin.QuickAI
@@ -40,6 +41,8 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
         private const string MaxTokensOptionKey = "quickai_max_tokens";
         private const string TemperatureOptionKey = "quickai_temperature";
         private const string OllamaHostOptionKey = "quickai_ollama_host";
+        private const string SystemPromptOptionKey = "quickai_system_prompt";
+        private const string AttachScreenshotOptionKey = "quickai_attach_screenshot";
         private const string DefaultOllamaHost = "http://localhost:11434";
 
         private const string DefaultModelName = "llama-3.1-8b-instant";
@@ -96,6 +99,8 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
         private double _temperature = DefaultTemperature;
         private int _timeoutSeconds = DefaultTimeoutSeconds;
         private string _ollamaHost = DefaultOllamaHost;
+        private string _systemPrompt = string.Empty;
+        private bool _attachScreenshot = false;
 
         private StreamingSession? _session;
         private bool _uiRefreshPending;
@@ -186,12 +191,13 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 // Otherwise, show prompt ready to submit
                 _pendingPrompt = search;
                 var displayTitle = search.Length > 100 ? search.Substring(0, 97) + "..." : search;
+                var imageHint = _attachScreenshot ? " · 📎 Clipboard image" : string.Empty;
                 return new List<Result>
                 {
                     new Result
                     {
                         Title = displayTitle,
-                        SubTitle = $"Press Enter to ask {_provider} · {_modelName}",
+                        SubTitle = $"Press Enter to ask {_provider} · {_modelName}{imageHint}",
                         IcoPath = _iconPath,
                         Score = 100,
                         Action = _ =>
@@ -369,6 +375,22 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                             DisplayDescription = "Base URL (e.g. https://api.deepseek.com or http://localhost:11434).",
                             PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Textbox,
                             TextValue = _ollamaHost
+                        },
+                        new()
+                        {
+                            Key = SystemPromptOptionKey,
+                            DisplayLabel = "System Prompt",
+                            DisplayDescription = "Optional instructions sent before every query (e.g. 'You are a concise assistant').",
+                            PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Textbox,
+                            TextValue = _systemPrompt
+                        },
+                        new()
+                        {
+                            Key = AttachScreenshotOptionKey,
+                            DisplayLabel = "Attach Clipboard Image",
+                            DisplayDescription = "When enabled, sends the current clipboard image with your query (requires a vision-capable model).",
+                            PluginOptionType = PluginAdditionalOption.AdditionalOptionType.CheckboxAndTextbox,
+                            Value = _attachScreenshot
                         }
                     };
                 }
@@ -473,7 +495,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 // If already completed, notify the window
                 if (session.HasCompleted)
                 {
-                    _resultsWindow.SetStreamingComplete();
+                    _resultsWindow?.SetStreamingComplete();
                 }
             });
         }
@@ -588,6 +610,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                         configuration,
                         prompt,
                         candidate.Key,
+                        session.ImageBase64,
                         session.Token).ConfigureAwait(false))
                     {
                         session.Append(chunk);
@@ -638,9 +661,10 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             ConfigurationSnapshot configuration,
             string prompt,
             string apiKey,
+            string? imageBase64,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            using var request = BuildHttpRequest(providerConfiguration, configuration, prompt, apiKey);
+            using var request = BuildHttpRequest(providerConfiguration, configuration, prompt, apiKey, imageBase64);
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(TimeSpan.FromSeconds(configuration.TimeoutSeconds));
 
@@ -728,7 +752,8 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             ProviderConfiguration providerConfiguration,
             ConfigurationSnapshot configuration,
             string prompt,
-            string apiKey)
+            string apiKey,
+            string? imageBase64 = null)
         {
             string endpoint = providerConfiguration.Endpoint;
             string json;
@@ -742,6 +767,8 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
 
             // Check if max_tokens should be included (<=0 means unlimited/omit)
             var includeMaxTokens = configuration.MaxTokens > 0;
+            var hasSystemPrompt = !string.IsNullOrWhiteSpace(configuration.SystemPrompt);
+            var hasImage = !string.IsNullOrEmpty(imageBase64);
 
             // Build request based on provider schema type
             switch (providerConfiguration.SchemaType)
@@ -752,21 +779,30 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                     object googleGenerationConfig = includeMaxTokens
                         ? new { temperature = configuration.Temperature, maxOutputTokens = configuration.MaxTokens }
                         : new { temperature = configuration.Temperature };
-                    var googlePayload = new
+
+                    // Build parts list for user content
+                    var googleParts = new List<object> { new { text = prompt } };
+                    if (hasImage)
                     {
-                        contents = new[]
-                        {
-                            new
-                            {
-                                parts = new[]
-                                {
-                                    new { text = prompt }
-                                }
-                            }
-                        },
-                        generationConfig = googleGenerationConfig
+                        googleParts.Add(new { inlineData = new { mimeType = "image/png", data = imageBase64 } });
+                    }
+
+                    var googlePayloadDict = new Dictionary<string, object>
+                    {
+                        ["contents"] = new[] { new { parts = googleParts.ToArray() } },
+                        ["generationConfig"] = googleGenerationConfig
                     };
-                    json = JsonSerializer.Serialize(googlePayload, new JsonSerializerOptions
+
+                    // Google system instruction support
+                    if (hasSystemPrompt)
+                    {
+                        googlePayloadDict["systemInstruction"] = new
+                        {
+                            parts = new[] { new { text = configuration.SystemPrompt } }
+                        };
+                    }
+
+                    json = JsonSerializer.Serialize(googlePayloadDict, new JsonSerializerOptions
                     {
                         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
@@ -774,22 +810,23 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                     break;
 
                 case ProviderSchemaType.Cohere:
-                    var coherePayload = includeMaxTokens
-                        ? new Dictionary<string, object>
-                        {
-                            ["model"] = configuration.Model,
-                            ["message"] = prompt,
-                            ["stream"] = true,
-                            ["temperature"] = configuration.Temperature,
-                            ["max_tokens"] = configuration.MaxTokens
-                        }
-                        : new Dictionary<string, object>
-                        {
-                            ["model"] = configuration.Model,
-                            ["message"] = prompt,
-                            ["stream"] = true,
-                            ["temperature"] = configuration.Temperature
-                        };
+                    var coherePayload = new Dictionary<string, object>
+                    {
+                        ["model"] = configuration.Model,
+                        ["message"] = prompt,
+                        ["stream"] = true,
+                        ["temperature"] = configuration.Temperature
+                    };
+                    if (includeMaxTokens)
+                    {
+                        coherePayload["max_tokens"] = configuration.MaxTokens;
+                    }
+                    // Cohere uses 'preamble' for system prompt
+                    if (hasSystemPrompt)
+                    {
+                        coherePayload["preamble"] = configuration.SystemPrompt;
+                    }
+                    // Note: Cohere v1/chat does not support image attachments
                     json = JsonSerializer.Serialize(coherePayload, new JsonSerializerOptions
                     {
                         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -799,22 +836,42 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
 
                 case ProviderSchemaType.OpenAI:
                 default:
-                    var openAiPayload = includeMaxTokens
-                        ? new Dictionary<string, object>
+                    // Build messages array
+                    var messages = new List<object>();
+
+                    // System prompt as first message
+                    if (hasSystemPrompt)
+                    {
+                        messages.Add(new { role = "system", content = configuration.SystemPrompt });
+                    }
+
+                    // User message with optional image
+                    if (hasImage)
+                    {
+                        // Multimodal content array format for vision models
+                        var contentParts = new List<object>
                         {
-                            ["model"] = configuration.Model,
-                            ["messages"] = new[] { new { role = "user", content = prompt } },
-                            ["stream"] = true,
-                            ["temperature"] = configuration.Temperature,
-                            ["max_tokens"] = configuration.MaxTokens
-                        }
-                        : new Dictionary<string, object>
-                        {
-                            ["model"] = configuration.Model,
-                            ["messages"] = new[] { new { role = "user", content = prompt } },
-                            ["stream"] = true,
-                            ["temperature"] = configuration.Temperature
+                            new { type = "text", text = prompt },
+                            new { type = "image_url", image_url = new { url = $"data:image/png;base64,{imageBase64}" } }
                         };
+                        messages.Add(new { role = "user", content = (object)contentParts });
+                    }
+                    else
+                    {
+                        messages.Add(new { role = "user", content = prompt });
+                    }
+
+                    var openAiPayload = new Dictionary<string, object>
+                    {
+                        ["model"] = configuration.Model,
+                        ["messages"] = messages,
+                        ["stream"] = true,
+                        ["temperature"] = configuration.Temperature
+                    };
+                    if (includeMaxTokens)
+                    {
+                        openAiPayload["max_tokens"] = configuration.MaxTokens;
+                    }
                     json = JsonSerializer.Serialize(openAiPayload, new JsonSerializerOptions
                     {
                         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -954,11 +1011,14 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
 
         private void StartQuery(string rawQuery, string search)
         {
+            // Capture clipboard image on the UI thread before going async
+            var imageBase64 = CaptureClipboardImageBase64();
+
             lock (_sessionGate)
             {
                 if (_session is null)
                 {
-                    _session = new StreamingSession(this, rawQuery, search);
+                    _session = new StreamingSession(this, rawQuery, search, imageBase64);
                     _session.Start();
                 }
             }
@@ -1001,6 +1061,42 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             }
         }
 
+        private string? CaptureClipboardImageBase64()
+        {
+            if (!_attachScreenshot)
+            {
+                return null;
+            }
+
+            string? base64 = null;
+
+            try
+            {
+                // Clipboard must be accessed on the STA/UI thread
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    if (Clipboard.ContainsImage())
+                    {
+                        var image = Clipboard.GetImage();
+                        if (image != null)
+                        {
+                            var encoder = new PngBitmapEncoder();
+                            encoder.Frames.Add(BitmapFrame.Create(image));
+                            using var ms = new MemoryStream();
+                            encoder.Save(ms);
+                            base64 = Convert.ToBase64String(ms.ToArray());
+                        }
+                    }
+                });
+            }
+            catch
+            {
+                // Clipboard access can fail silently
+            }
+
+            return base64;
+        }
+
         private void ResetToDefaults()
         {
             _provider = ProviderGroq;
@@ -1011,6 +1107,8 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             _temperature = DefaultTemperature;
             _timeoutSeconds = DefaultTimeoutSeconds;
             _ollamaHost = DefaultOllamaHost;
+            _systemPrompt = string.Empty;
+            _attachScreenshot = false;
         }
 
         private void ApplySettings(IEnumerable<PluginAdditionalOption> options)
@@ -1058,6 +1156,12 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                     case OllamaHostOptionKey:
                         _ollamaHost = string.IsNullOrWhiteSpace(option.TextValue) ? DefaultOllamaHost : option.TextValue.Trim();
                         break;
+                    case SystemPromptOptionKey:
+                        _systemPrompt = option.TextValue?.Trim() ?? string.Empty;
+                        break;
+                    case AttachScreenshotOptionKey:
+                        _attachScreenshot = option.Value;
+                        break;
                 }
             }
         }
@@ -1074,7 +1178,9 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                     _maxTokens,
                     _temperature,
                     _timeoutSeconds,
-                    _ollamaHost);
+                    _ollamaHost,
+                    _systemPrompt,
+                    _attachScreenshot);
             }
         }
 
@@ -1134,7 +1240,9 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             int MaxTokens,
             double Temperature,
             int TimeoutSeconds,
-            string OllamaHost);
+            string OllamaHost,
+            string SystemPrompt,
+            bool AttachScreenshot);
 
         private readonly record struct ApiKeyCandidate(string Key, ApiKeyKind Kind);
 
@@ -1161,14 +1269,16 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             private DateTime _lastRefreshTime = DateTime.UtcNow;
             private static readonly TimeSpan MinRefreshInterval = TimeSpan.FromMilliseconds(150);
 
-            public StreamingSession(Main owner, string rawQuery, string prompt)
+            public StreamingSession(Main owner, string rawQuery, string prompt, string? imageBase64 = null)
             {
                 _owner = owner;
                 RawQuery = rawQuery;
                 _prompt = prompt;
+                ImageBase64 = imageBase64;
             }
 
             public string RawQuery { get; }
+            public string? ImageBase64 { get; }
             public event Action<string>? TokenReceived;
 
             public CancellationToken Token
