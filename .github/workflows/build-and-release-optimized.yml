@@ -246,13 +246,12 @@ jobs:
           
           ## ✨ What's New in v$VERSION
           
-          ### 💬 Custom System Prompt & 📸 Clipboard Image Attachment!
+          ### 💬 System Prompt, 📸 Clipboard Image & ⚡ Quick Commands!
           
-          Two highly requested features to supercharge your AI workflow:
-          
-          - 💬 **Custom System Prompt**: Configure a persistent system instruction sent before every query (e.g. "You are a concise assistant"). Works across all providers — OpenAI-compatible (`role: system`), Google (`systemInstruction`), and Cohere (`preamble`).
-          - 📸 **Clipboard Image Attachment**: Attach the current clipboard image to your query for vision/multimodal AI models. Toggle in settings, uses OpenAI `image_url` format and Google `inlineData`. Subtitle shows 📎 when active.
-          - 🎯 **Provider-Aware Payloads**: Restructured request building for cleaner system prompt and image injection across all provider schemas.
+          - 💬 **Custom System Prompt**: Persistent instructions sent before every query. OpenAI (`role: system`), Google (`systemInstruction`), Cohere (`preamble`).
+          - 📸 **Clipboard Image Attachment**: Send clipboard images with queries for vision models. UI shows 📎 when active.
+          - ⚡ **Quick Commands**: Type `ai /` to see built-in commands (`/read`, `/explain`, `/summarize`, `/translate`, `/fix`). Auto-reads clipboard text when no input provided.
+          - ⚙️ **Custom Quick Commands**: Add your own `/commands` in settings (format: `/name=prompt; /name2=prompt2`).
           
           **Thanks to [@ELGUAPOLIFE](https://github.com/ELGUAPOLIFE) for the feature request ([#13](https://github.com/ruslanlap/PowerToysRun-QuickAi/issues/13))!**
           
@@ -265,6 +264,7 @@ jobs:
           - **Local AI**: Run models offline with Ollama - complete privacy, zero cost
           - **Custom System Prompt**: Persistent instructions sent before every query across all providers
           - **Clipboard Image Attachment**: Send clipboard images with queries for vision/multimodal models
+          - **Quick Commands**: Built-in `/read`, `/explain`, `/summarize`, `/translate`, `/fix` + custom user commands
           - **Dedicated Results Window**: Full-featured window for viewing AI responses with markdown rendering
           - **Streaming Responses**: Real-time AI answers as they're generated
           - **Configurable Models**: Choose your preferred AI model and parameters
@@ -303,6 +303,7 @@ jobs:
           - **Ollama Host**: Custom URL for Ollama instances (default: http://localhost:11434)
           - **System Prompt**: Optional persistent instructions sent before every query
           - **Clipboard Image**: Toggle to attach clipboard images with queries (vision models)
+          - **Custom Quick Commands**: Add your own `/commands` (format: `/name=prompt; /name2=prompt2`)
           
           ### 📦 Downloads:
           - **x64**: For Intel/AMD processors
