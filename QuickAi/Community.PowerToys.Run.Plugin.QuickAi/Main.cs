@@ -413,7 +413,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                             Key = AttachScreenshotOptionKey,
                             DisplayLabel = "Attach Clipboard Image",
                             DisplayDescription = "When enabled, sends the current clipboard image with your query (requires a vision-capable model).",
-                            PluginOptionType = PluginAdditionalOption.AdditionalOptionType.CheckboxAndTextbox,
+                            PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
                             Value = _attachScreenshot
                         },
                         new()
@@ -1093,6 +1093,27 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             }
         }
 
+        private string? CaptureClipboardText()
+        {
+            string? text = null;
+            try
+            {
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    if (Clipboard.ContainsText())
+                    {
+                        text = Clipboard.GetText()?.Trim();
+                    }
+                });
+            }
+            catch
+            {
+                // Clipboard access can fail silently
+            }
+
+            return string.IsNullOrEmpty(text) ? null : text;
+        }
+
         private string? CaptureClipboardImageBase64()
         {
             if (!_attachScreenshot)
@@ -1232,6 +1253,12 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             var allCommands = new List<(string Name, string Prompt, string Description)>(BuiltInCommands);
             allCommands.AddRange(_userCommands);
 
+            // Pre-capture clipboard text once (used when no extra text is typed)
+            var clipboardText = CaptureClipboardText();
+            var clipboardHint = clipboardText != null
+                ? (clipboardText.Length > 60 ? clipboardText.Substring(0, 57) + "..." : clipboardText)
+                : null;
+
             var score = 1000;
             foreach (var (name, prompt, description) in allCommands)
             {
@@ -1239,16 +1266,25 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 if (filter == "/" || name.StartsWith(filter, StringComparison.OrdinalIgnoreCase))
                 {
                     var commandPrompt = prompt;
+                    var subtitle = prompt;
                     // If user typed extra text after the command name (e.g. "/translate to French"),
                     // append it to the prompt
-                    var extraText = string.Empty;
+                    var hasExtraText = false;
                     if (search.Length > name.Length && search.StartsWith(name, StringComparison.OrdinalIgnoreCase))
                     {
-                        extraText = search.Substring(name.Length).Trim();
+                        var extraText = search.Substring(name.Length).Trim();
                         if (!string.IsNullOrEmpty(extraText))
                         {
                             commandPrompt = $"{prompt}: {extraText}";
+                            hasExtraText = true;
                         }
+                    }
+
+                    // If no extra text typed, use clipboard text as input
+                    if (!hasExtraText && clipboardText != null)
+                    {
+                        commandPrompt = $"{prompt}: {clipboardText}";
+                        subtitle = $"{prompt} · 📋 \"{clipboardHint}\"";
                     }
 
                     var capturedPrompt = commandPrompt;
@@ -1256,7 +1292,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                     results.Add(new Result
                     {
                         Title = $"{name}  —  {description}",
-                        SubTitle = $"{prompt}{imageHint}  |  {_provider} · {_modelName}",
+                        SubTitle = $"{subtitle}{imageHint}  |  {_provider} · {_modelName}",
                         IcoPath = _iconPath,
                         Score = score--,
                         Action = _ =>
