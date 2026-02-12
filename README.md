@@ -16,7 +16,7 @@ Access multiple AI providers instantly with `Alt+Space` → `ai explain quantum 
 </a>
 <img src="https://img.shields.io/maintenance/yes/2025" alt="Maintenance">
 <img src="https://img.shields.io/badge/C%23-.NET%209.0-512BD4" alt="C# .NET 9.0">
-<img src="https://img.shields.io/badge/version-v1.1.1-brightgreen" alt="Version">
+<img src="https://img.shields.io/badge/version-v1.2.0-brightgreen" alt="Version">
 <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
 <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/stargazers">
   <img src="https://img.shields.io/github/stars/ruslanlap/PowerToysRun-QuickAi" alt="GitHub stars">
@@ -41,10 +41,10 @@ Access multiple AI providers instantly with `Alt+Space` → `ai explain quantum 
 </div>
 
 <div align="center">
-  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.1.1/QuickAi-1.1.1-x64.zip">
+  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.2.0/QuickAi-1.2.0-x64.zip">
     <img src="https://img.shields.io/badge/⬇️_DOWNLOAD-x64-blue?style=for-the-badge&logo=github" alt="Download x64">
   </a>
-  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.1.1/QuickAi-1.1.1-ARM64.zip">
+  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.2.0/QuickAi-1.2.0-ARM64.zip">
     <img src="https://img.shields.io/badge/⬇️_DOWNLOAD-ARM64-blue?style=for-the-badge&logo=github" alt="Download ARM64">
   </a>
 </div>
@@ -83,10 +83,10 @@ Alt+Space → ai translate to french  # 🌍 Language tasks
   
   **⬇️ Ready to boost your productivity?**
   
-  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.1.1/QuickAi-1.1.1-x64.zip">
+  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.2.0/QuickAi-1.2.0-x64.zip">
     <img src="https://img.shields.io/badge/Download_for-x64_Windows-0078d4?style=for-the-badge&logo=windows&logoColor=white" alt="Download x64">
   </a>
-  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.1.1/QuickAi-1.1.1-ARM64.zip">
+  <a href="https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.2.0/QuickAi-1.2.0-ARM64.zip">
     <img src="https://img.shields.io/badge/Download_for-ARM64_Windows-0078d4?style=for-the-badge&logo=windows&logoColor=white" alt="Download ARM64">
   </a>
 </div>
@@ -128,6 +128,55 @@ Alt+Space → ai translate to french  # 🌍 Language tasks
 ---
 
 ## 📋 Recent Changelog
+
+### 💬 v1.2.0 - Custom System Prompt & Clipboard Image Attachment
+
+<div align="center">
+
+#### 🎯 Custom System Prompt
+Configure persistent instructions that are sent before every query across all AI providers!
+
+<!-- Screenshot placeholder: System Prompt Settings -->
+<img src="assets/v1.2.0-system-prompt.png" alt="System Prompt Setting" width="700">
+<br><em>Configure custom system instructions like "You are a concise assistant" for consistent AI behavior</em>
+
+#### 📸 Clipboard Image Attachment 
+Attach screenshots and images directly to your queries for vision/multimodal AI models!
+
+<!-- Screenshot placeholder: Screenshot Reading Example -->
+<img src="assets/v1.2.0-screenshot-reading.png" alt="Screenshot Reading Example" width="700">
+<br><em>QuickAI reading text from a clipboard screenshot - perfect for code analysis, error messages, and visual content</em>
+
+#### 🎨 Enhanced UI Indicators
+Visual feedback when image attachment is enabled with 📎 indicator in the query subtitle.
+
+<!-- Screenshot placeholder: UI with Image Indicator -->
+<img src="assets/v1.2.0-ui-indicator.png" alt="Image Attachment UI Indicator" width="700">
+<br><em>Clear visual feedback when clipboard image attachment is active</em>
+
+</div>
+
+**New Features:**
+- 💬 **Custom System Prompt**: Persistent instructions sent before every query (works across all providers)
+  - OpenAI: `role: system` message format
+  - Google: `systemInstruction` field  
+  - Cohere: `preamble` field
+- 📸 **Clipboard Image Attachment**: Send clipboard images with queries for vision models
+  - OpenAI-compatible: `image_url` format
+  - Google: `inlineData` format
+  - UI shows 📎 indicator when active
+- 🎯 **Provider-Aware Payloads**: Restructured request building for cleaner system prompt and image injection
+- 📋 **Enhanced Settings**: New configuration options in PowerToys settings panel
+
+**Perfect for:**
+- 📝 **Code Analysis**: Screenshot code and ask "explain this error"
+- 📊 **Data Interpretation**: Screenshot charts/graphs and ask for analysis  
+- 🖼️ **Visual Content**: Process images, diagrams, and visual information
+- 🎭 **Consistent AI Behavior**: Set custom personality or response style
+
+**Thanks to [@ELGUAPOLIFE](https://github.com/ELGUAPOLIFE) for the feature request ([#13](https://github.com/ruslanlap/PowerToysRun-QuickAi/issues/13))!**
+
+---
 
 ### 🎨 v1.1.1 - UI Overhaul & Enhanced Experience
 
@@ -195,6 +244,28 @@ Alt+Space → ai translate to french  # 🌍 Language tasks
 <br><b>📋 One-Click Copy</b><br>
 <sub>Press Enter to copy<br>responses to clipboard</sub>
 </td>
+<td align="center" width="33%">
+<img width="60" src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Thinking%20Face/3D/thinking_face_3d.png">
+<br><b>💬 Custom System Prompt</b><br>
+<sub>Persistent instructions<br>before every query</sub>
+</td>
+</tr>
+<tr>
+<td align="center" width="33%">
+<img width="60" src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Camera/3D/camera_3d.png">
+<br><b>📸 Clipboard Images</b><br>
+<sub>Attach screenshots for<br>vision AI models</sub>
+</td>
+<td align="center" width="33%">
+<img width="60" src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Display/3D/display_3d.png">
+<br><b>🪟 Results Window</b><br>
+<sub>Dedicated window with<br>markdown rendering</sub>
+</td>
+<td align="center" width="33%">
+<img width="60" src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/House/3D/house_3d.png">
+<br><b>🏠 Local AI</b><br>
+<sub>Run models offline<br>with Ollama</sub>
+</td>
 </tr>
 </table>
 </div>
@@ -216,6 +287,8 @@ Alt+Space → ai translate to french  # 🌍 Language tasks
 > 🎉 **New in v1.1.0**: Local AI with Ollama support! Run models on your own machine with zero API costs. Thanks to [@fuzhiyin-7](https://github.com/fuzhiyin-7) for the idea!
 > 
 > 🎨 **New in v1.1.1**: Dedicated Results Window with markdown rendering, modern typography (Inter & JetBrains Mono), dynamic theme support, and enhanced UX! Thanks to [@WuJunkai2004](https://github.com/WuJunkai2004) for the ideas!
+> 
+> 💬 **New in v1.2.0**: Custom System Prompt & Clipboard Image Attachment! Configure persistent instructions and attach screenshots for vision models. Thanks to [@ELGUAPOLIFE](https://github.com/ELGUAPOLIFE) for the feature request!
 
 ---
 
@@ -238,6 +311,15 @@ Alt+Space → ai translate to french  # 🌍 Language tasks
 ### New Results Window (v1.1.1)
 <img src="assets/v1.1.1.png" alt="New Results Window with Markdown Support" width="800">
 
+### Custom System Prompt (v1.2.0)
+<img src="assets/v1.2.0-system-prompt.png" alt="System Prompt Configuration" width="800">
+
+### Clipboard Image Attachment (v1.2.0)
+<img src="assets/v1.2.0-screenshot-reading.png" alt="Screenshot Reading Example" width="800">
+
+### Image Attachment UI Indicator (v1.2.0)
+<img src="assets/v1.2.0-ui-indicator.png" alt="Image Attachment UI Indicator" width="800">
+
 </div>
 
 ---
@@ -247,7 +329,7 @@ Alt+Space → ai translate to french  # 🌍 Language tasks
 ### 1️⃣ **Download & Extract** (15 seconds)
 ```bash
 # Choose your architecture
-wget https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.1.1/QuickAi-1.1.1-x64.zip
+wget https://github.com/ruslanlap/PowerToysRun-QuickAi/releases/download/v1.2.0/QuickAi-1.2.0-x64.zip
 # Extract to PowerToys plugin directory
 ```
 
@@ -292,6 +374,18 @@ ai translate "hello world" to spanish
 ai write a poem about programming
 ai brainstorm ideas for a mobile app
 ai create a product description for headphones
+
+# 📸 Vision & Screenshot Tasks (NEW!)
+ai what does this error message mean? 📎 (with clipboard screenshot)
+ai explain this code snippet 📎 (with clipboard screenshot)
+ai read the text from this image 📎 (with clipboard screenshot)
+ai analyze this chart/graph 📎 (with clipboard screenshot)
+
+# 💬 System Prompt Examples
+# Set system prompt to "You are a concise assistant" then:
+ai explain quantum computing
+# Set system prompt to "You are a helpful coding tutor" then:
+ai debug this python code
 ```
 
 </div>
@@ -325,6 +419,15 @@ ai create a product description for headphones
 - **Request Timeout**: Configure timeout in seconds (3-30, default: 8)
 - **Model Selection**: Choose specific models per provider
 - **Dual API Keys**: Configure backup keys for reliability
+
+### 🆕 New Advanced Features
+- **System Prompt**: Configure persistent instructions sent before every query (e.g., "You are a concise assistant")
+  - Works across all providers with native API support
+  - Perfect for setting consistent AI personality or response style
+- **Clipboard Image Attachment**: Toggle to attach clipboard images with queries
+  - Requires vision-capable models (GPT-4V, Gemini Pro Vision, etc.)
+  - Shows 📎 indicator when enabled
+  - Great for code analysis, error messages, charts, and visual content
 
 ### Provider-Specific Settings
 - **Groq**: Best for speed with Llama models
@@ -683,6 +786,7 @@ Released under the [MIT License](LICENSE). Free for personal and commercial use.
 **Special Thanks:**
 - [@fuzhiyin-7](https://github.com/fuzhiyin-7) - For suggesting Ollama integration, bringing local AI support to QuickAI! 🎉
 - [@WuJunkai2004](https://github.com/WuJunkai2004) (Wu Junkai) - For ideas and contributions that inspired the major UI overhaul with dedicated ResultsWindow, markdown rendering, and improved user experience in v1.1.1! 🎨✨
+- [@ELGUAPOLIFE](https://github.com/ELGUAPOLIFE) - For the feature request that brought custom system prompts and clipboard image attachment to QuickAI in v1.2.0! 💬📸
 
 ---
 
