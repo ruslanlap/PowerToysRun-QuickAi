@@ -8,6 +8,12 @@ updates:
     labels: ["dependencies", "automated"]
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      test-sdk:
+        patterns:
+          - "Microsoft.NET.Test.Sdk"
+          - "NUnit*"
+          - "FluentAssertions"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
