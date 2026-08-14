@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <PackageReference Include="System.Text.Json" Version="9.0.10" />
+    <PackageReference Include="WpfMath" Version="2.1.0" />
   </ItemGroup>
 
   <ItemGroup>

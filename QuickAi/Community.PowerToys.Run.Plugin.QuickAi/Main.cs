@@ -25,6 +25,57 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
 {
     public sealed class Main : IPlugin, ISettingProvider, IContextMenu, IDisposable
     {
+        /// <summary>
+        /// Ensures bundled dependencies (WpfMath, XamlMath.Shared) can be resolved from the plugin directory.
+        /// PowerToys Run loads plugins via Assembly.LoadFrom, which does not probe the plugin folder
+        /// for referenced assemblies that are not part of the host's deps.json graph.
+        /// </summary>
+        static Main()
+        {
+            System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (ctx, name) =>
+            {
+                if (name.Name is not ("WpfMath" or "XamlMath.Shared"))
+                {
+                    return null;
+                }
+
+                try
+                {
+                    // Resolve from the plugin's own directory (where this DLL lives).
+                    var pluginDir = Path.GetDirectoryName(typeof(Main).Assembly.Location);
+                    if (!string.IsNullOrEmpty(pluginDir))
+                    {
+                        var candidate = Path.Combine(pluginDir, name.Name + ".dll");
+                        if (File.Exists(candidate))
+                        {
+                            return ctx.LoadFromAssemblyPath(candidate);
+                        }
+                    }
+
+                    // Fall back to the PowerToys shared-dependency directory (parent of RunPlugins).
+                    if (!string.IsNullOrEmpty(pluginDir))
+                    {
+                        var runPluginsDir = Path.GetDirectoryName(pluginDir.TrimEnd(Path.DirectorySeparatorChar));
+                        var sharedDir = Path.GetDirectoryName(runPluginsDir ?? string.Empty);
+                        if (!string.IsNullOrEmpty(sharedDir))
+                        {
+                            var candidate = Path.Combine(sharedDir, name.Name + ".dll");
+                            if (File.Exists(candidate))
+                            {
+                                return ctx.LoadFromAssemblyPath(candidate);
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // Ignore resolution failures; the default loader will surface the original error.
+                }
+
+                return null;
+            };
+        }
+
         private const string ProviderGroq = "Groq";
         private const string ProviderTogether = "Together";
         private const string ProviderFireworks = "Fireworks";
@@ -496,6 +547,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 {
                     _resultsWindow = new ResultsWindow();
                     _resultsWindow.Closed += (_, _) => _resultsWindow = null;
+                    _resultsWindow.FollowUpRequested += AskFollowUp;
                     _resultsWindow.Show();
                 }
                 else
@@ -538,12 +590,43 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             _resultsWindow?.AppendText(text);
         }
 
+        /// <summary>
+        /// Handle a follow-up question submitted from the results window.
+        /// Carries the conversation history into the new request and streams
+        /// the answer into the same window.
+        /// </summary>
+        private void AskFollowUp(string question)
+        {
+            if (string.IsNullOrWhiteSpace(question))
+            {
+                return;
+            }
+
+            lock (_sessionGate)
+            {
+                if (_session is null)
+                {
+                    return;
+                }
+
+                _session.StartFollowUp(question.Trim());
+            }
+
+            // Show the user's question in the window, then let streaming fill in the answer.
+            _resultsWindow?.AppendUserQuestion(question.Trim());
+            _resultsWindow?.SetStatusText(" · Thinking...");
+            _resultsWindow?.SetFollowUpBusy(true);
+            TriggerRefresh(_session?.RawQuery ?? string.Empty);
+        }
+
         // notify window that streaming is complete
         private void NotifyStreamingComplete()
         {
             Application.Current?.Dispatcher?.BeginInvoke(() =>
             {
                 _resultsWindow?.SetStreamingComplete();
+                _resultsWindow?.SetFollowUpBusy(false);
+                _resultsWindow?.SetStatusText(string.Empty);
             });
         }
 
@@ -635,6 +718,8 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                     return;
                 }
 
+                var history = session.SnapshotHistory();
+
                 try
                 {
                     await foreach (var chunk in ExecuteStreamingRequestAsync(
@@ -643,6 +728,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                         prompt,
                         candidate.Key,
                         session.ImageBase64,
+                        history,
                         session.Token).ConfigureAwait(false))
                     {
                         session.Append(chunk);
@@ -694,9 +780,10 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             string prompt,
             string apiKey,
             string? imageBase64,
+            IReadOnlyList<(string Role, string Content)>? history,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            using var request = BuildHttpRequest(providerConfiguration, configuration, prompt, apiKey, imageBase64);
+            using var request = BuildHttpRequest(providerConfiguration, configuration, prompt, apiKey, imageBase64, history);
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(TimeSpan.FromSeconds(configuration.TimeoutSeconds));
 
@@ -785,7 +872,8 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             ConfigurationSnapshot configuration,
             string prompt,
             string apiKey,
-            string? imageBase64 = null)
+            string? imageBase64 = null,
+            IReadOnlyList<(string Role, string Content)>? history = null)
         {
             string endpoint = providerConfiguration.Endpoint;
             string json;
@@ -875,6 +963,22 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                     if (hasSystemPrompt)
                     {
                         messages.Add(new { role = "system", content = configuration.SystemPrompt });
+                    }
+
+                    // Conversation history (user/assistant pairs) before the new prompt
+                    if (history is not null)
+                    {
+                        foreach (var (role, content) in history)
+                        {
+                            if (string.Equals(role, "assistant", StringComparison.OrdinalIgnoreCase))
+                            {
+                                messages.Add(new { role = "assistant", content });
+                            }
+                            else
+                            {
+                                messages.Add(new { role = "user", content });
+                            }
+                        }
                     }
 
                     // User message with optional image
@@ -1420,6 +1524,9 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             private bool _hasError;
             private bool _completed;
 
+            // Conversation history for follow-up questions: alternating user/assistant turns.
+            private readonly List<(string Role, string Content)> _history = new();
+
             // UI Batching optimization
             private int _chunksSinceLastRefresh = 0;
             private const int ChunksPerRefresh = 3;  // Update UI every 3 chunks
@@ -1504,6 +1611,38 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 _owner.BeginStreaming(this);
             }
 
+            /// <summary>
+            /// Start a follow-up turn: archive the current turn into history,
+            /// adopt the new question as the active prompt, clear the buffer,
+            /// and kick off a fresh streaming request with the full conversation.
+            /// </summary>
+            public void StartFollowUp(string question)
+            {
+                lock (_sync)
+                {
+                    // If the previous turn produced a response, archive it as history.
+                    if (!_completed || _buffer.Length > 0)
+                    {
+                        RecordTurnIntoHistory();
+                    }
+
+                    _prompt = question;
+                    _cts.Cancel();
+                    _cts.Dispose();
+                    _cts = new CancellationTokenSource();
+                    _buffer.Clear();
+                    _status = null;
+                    _hasError = false;
+                    _completed = false;
+
+                    // Reset batching counters
+                    _chunksSinceLastRefresh = 0;
+                    _lastRefreshTime = DateTime.UtcNow;
+                }
+
+                _owner.BeginStreaming(this);
+            }
+
             public void Cancel()
             {
                 lock (_sync)
@@ -1556,6 +1695,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 lock (_sync)
                 {
                     _completed = true;
+                    RecordTurnIntoHistory();
                 }
 
                 // Notify window that streaming is complete
@@ -1563,6 +1703,62 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
 
                 // Always refresh UI when completed
                 _owner.TriggerRefresh(RawQuery);
+            }
+
+            /// <summary>
+            /// Record the current prompt/response pair into conversation history
+            /// so follow-up questions can carry context.
+            /// </summary>
+            private void RecordTurnIntoHistory()
+            {
+                if (string.IsNullOrWhiteSpace(_prompt))
+                {
+                    return;
+                }
+
+                var response = _buffer.ToString();
+                if (string.IsNullOrWhiteSpace(response))
+                {
+                    return;
+                }
+
+                // If the last recorded user message equals this prompt, treat it as an
+                // update of the same turn (re-ask) rather than a new turn.
+                if (_history.Count >= 2 &&
+                    _history[^2].Role == "user" &&
+                    string.Equals(_history[^2].Content, _prompt, StringComparison.Ordinal))
+                {
+                    _history[^1] = ("assistant", response);
+                    return;
+                }
+
+                _history.Add(("user", _prompt));
+                _history.Add(("assistant", response));
+            }
+
+            /// <summary>
+            /// Snapshot of the conversation history (user/assistant pairs).
+            /// </summary>
+            public List<(string Role, string Content)> SnapshotHistory()
+            {
+                lock (_sync)
+                {
+                    return new List<(string Role, string Content)>(_history);
+                }
+            }
+
+            /// <summary>
+            /// Whether the session currently has an in-flight request.
+            /// </summary>
+            public bool IsBusy
+            {
+                get
+                {
+                    lock (_sync)
+                    {
+                        return !_completed;
+                    }
+                }
             }
 
             public void SetStatus(string message)
