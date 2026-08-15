@@ -1,0 +1,16 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    ".": {
+      "changelog-path": "CHANGELOG.md",
+      "release-type": "simple",
+      "include-component-in-tag": false,
+      "bump-minor-pre-major": true,
+      "extra-files": {
+        "type": "json",
+        "path": "QuickAi/Community.PowerToys.Run.Plugin.QuickAi/plugin.json",
+        "jsonpath": "$.Version"
+      }
+    }
+  }
+}
