@@ -6,11 +6,13 @@
       "release-type": "simple",
       "include-component-in-tag": false,
       "bump-minor-pre-major": true,
-      "extra-files": {
-        "type": "json",
-        "path": "QuickAi/Community.PowerToys.Run.Plugin.QuickAi/plugin.json",
-        "jsonpath": "$.Version"
-      }
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "QuickAi/Community.PowerToys.Run.Plugin.QuickAi/plugin.json",
+          "jsonpath": "$.Version"
+        }
+      ]
     }
   }
 }
