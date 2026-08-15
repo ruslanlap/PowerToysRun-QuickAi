@@ -1,0 +1,59 @@
+name: Release Please
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # Bump plugin.json version to match the release tag
+  sync-plugin-version:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+
+      - name: Sync plugin.json version
+        run: |
+          TAG="${{ needs.release-please.outputs.tag_name }}"
+          VER="${TAG#v}"
+          cd QuickAi/Community.PowerToys.Run.Plugin.QuickAi
+          python3 - << EOF
+          import json
+          with open("plugin.json") as f:
+              data = json.load(f)
+          data["Version"] = "${{ needs.release-please.outputs.tag_name }}"[1:]
+          with open("plugin.json", "w") as f:
+              json.dump(data, f, indent=2)
+              f.write("\n")
+          EOF
+          echo "Synced to $VER"
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add plugin.json 2>/dev/null || git add QuickAi/Community.PowerToys.Run.Plugin.QuickAi/plugin.json
+          git commit -m "chore: sync plugin.json version to ${{ needs.release-please.outputs.tag_name }}" || echo "no changes"
+          git push origin HEAD:master
