@@ -95,9 +95,6 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
         private const string ProviderXAI = "xAI (Grok)";
         private const string ProviderGemini = "Gemini (Google)";
         private const string ProviderPerplexity = "Perplexity";
-        private const string ProviderGroqDeepSeek = "Groq (DeepSeek)";
-        private const string ProviderOpenRouterDeepSeek = "OpenRouter (DeepSeek)";
-
         private const string ProviderOptionKey = "quickai_provider";
         private const string PrimaryKeyOptionKey = "quickai_primary_key";
         private const string SecondaryKeyOptionKey = "quickai_secondary_key";
@@ -141,14 +138,12 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             ProviderGemini,
             ProviderGoogle,
             ProviderGroq,
-            ProviderGroqDeepSeek,
             ProviderMistral,
             ProviderMoonshot,
             ProviderOllama,
             ProviderOpenAI,
             ProviderOpenAICompatible,
             ProviderOpenRouter,
-            ProviderOpenRouterDeepSeek,
             ProviderPerplexity,
             ProviderQwen,
             ProviderSiliconFlow,
@@ -178,9 +173,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             [ProviderMistral] = "mistral-small-latest",
             [ProviderXAI] = "grok-2-latest",
             [ProviderPerplexity] = "sonar",
-            [ProviderGroqDeepSeek] = "deepseek-r1-distill-llama-70b",
-            [ProviderOpenRouterDeepSeek] = "deepseek/deepseek-chat",
-            [ProviderOpenAICompatible] = "gpt-4o-mini"
+            [ProviderOpenAICompatible] = ""
         };
 
         private static readonly IReadOnlyDictionary<string, ProviderConfiguration> ProviderConfigurations =
@@ -204,8 +197,6 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                 [ProviderMistral] = new("https://api.mistral.ai/v1/chat/completions", ProviderSchemaType.OpenAI),
                 [ProviderXAI] = new("https://api.x.ai/v1/chat/completions", ProviderSchemaType.OpenAI),
                 [ProviderPerplexity] = new("https://api.perplexity.ai/chat/completions", ProviderSchemaType.OpenAI),
-                [ProviderGroqDeepSeek] = new("https://api.groq.com/openai/v1/chat/completions", ProviderSchemaType.OpenAI),
-                [ProviderOpenRouterDeepSeek] = new("https://openrouter.ai/api/v1/chat/completions", ProviderSchemaType.OpenAI),
                 [ProviderOpenAICompatible] = new("http://localhost/v1/chat/completions", ProviderSchemaType.OpenAI)
             };
 
@@ -876,14 +867,14 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             int timeoutSeconds,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            await using var stream = await response.Content.ReadAsStreamAsync(timeoutSource.Token).ConfigureAwait(false);
             using var reader = new StreamReader(stream);
 
             while (!reader.EndOfStream)
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                timeoutSource.Token.ThrowIfCancellationRequested();
 
-                var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+                var line = await reader.ReadLineAsync(timeoutSource.Token).ConfigureAwait(false);
                 if (string.IsNullOrWhiteSpace(line))
                 {
                     continue;
@@ -1063,10 +1054,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                         ["stream"] = true
                     };
                     // Anthropic uses top_p/temperature; temperature is optional
-                    if (includeMaxTokens)
-                    {
-                        anthropicPayload["temperature"] = configuration.Temperature;
-                    }
+                    anthropicPayload["temperature"] = configuration.Temperature;
                     if (hasSystemPrompt)
                     {
                         anthropicPayload["system"] = configuration.SystemPrompt;
