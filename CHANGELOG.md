@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/ruslanlap/PowerToysRun-QuickAi/compare/v1.3.0...v1.3.1) (2026-08-17)
+
+
+### Bug Fixes
+
+* build workflow trigger from push:tags to release:published ([#29](https://github.com/ruslanlap/PowerToysRun-QuickAi/issues/29)) ([a43e6d4](https://github.com/ruslanlap/PowerToysRun-QuickAi/commit/a43e6d40aa9b3f863642ad9e8a2f6bbca68b9993))
+
 ## [1.3.0](https://github.com/ruslanlap/PowerToysRun-QuickAi/compare/v1.2.1...v1.3.0) (2026-08-15)
 
 
