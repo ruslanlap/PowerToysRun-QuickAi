@@ -3,6 +3,7 @@ name: Release Please
 on:
   push:
     branches: [master]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -12,8 +13,9 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
+      release_created: ${{ steps.release.outputs.release_created || steps.release.outputs['--release_created'] || steps.release.outputs['.--release_created'] }}
+      tag_name: ${{ steps.release.outputs.tag_name || steps.release.outputs['--tag_name'] || steps.release.outputs['.--tag_name'] }}
+      version: ${{ steps.release.outputs.version || steps.release.outputs['--version'] || steps.release.outputs['.--version'] }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -22,15 +24,14 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  # Bump plugin.json version to match the release tag
   sync-plugin-version:
     needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
+    if: ${{ needs.release-please.outputs.release_created == 'true' || needs.release-please.outputs.release_created == true }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
         with:
           ref: ${{ needs.release-please.outputs.tag_name }}
 
@@ -57,3 +58,13 @@ jobs:
           git add plugin.json 2>/dev/null || git add QuickAi/Community.PowerToys.Run.Plugin.QuickAi/plugin.json
           git commit -m "chore: sync plugin.json version to ${{ needs.release-please.outputs.tag_name }}" || echo "no changes"
           git push origin HEAD:master
+
+  build-and-release:
+    needs: [release-please, sync-plugin-version]
+    if: ${{ always() && (needs.release-please.outputs.release_created == 'true' || needs.release-please.outputs.release_created == true) && (needs.sync-plugin-version.result == 'success' || needs.sync-plugin-version.result == 'skipped') }}
+    uses: ./.github/workflows/build-and-release-optimized.yml
+    with:
+      tag_name: ${{ needs.release-please.outputs.tag_name }}
+      version: ${{ needs.release-please.outputs.version }}
+      upload_release: true
+    secrets: inherit
