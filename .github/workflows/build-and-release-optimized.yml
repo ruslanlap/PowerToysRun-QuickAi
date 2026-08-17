@@ -195,10 +195,9 @@ jobs:
       always() &&
       needs.build.result == 'success' &&
       (
+        inputs.upload_release == true || inputs.upload_release == 'true' ||
         startsWith(github.ref, 'refs/tags/v') ||
-        github.event_name == 'release' ||
-        (github.event_name == 'workflow_call' && (inputs.upload_release == true || inputs.upload_release == 'true')) ||
-        (github.event_name == 'workflow_dispatch' && (inputs.upload_release == true || inputs.upload_release == 'true'))
+        github.event_name == 'release'
       )
 
     steps:
