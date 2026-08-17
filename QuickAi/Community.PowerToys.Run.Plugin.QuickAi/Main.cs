@@ -1060,13 +1060,10 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                         ["model"] = configuration.Model,
                         ["messages"] = anthropicMessages,
                         ["max_tokens"] = Math.Max(includeMaxTokens ? configuration.MaxTokens : 1024, 1),
-                        ["stream"] = true
+                        ["stream"] = true,
+                        ["temperature"] = configuration.Temperature
                     };
                     // Anthropic uses top_p/temperature; temperature is optional
-                    if (includeMaxTokens)
-                    {
-                        anthropicPayload["temperature"] = configuration.Temperature;
-                    }
                     if (hasSystemPrompt)
                     {
                         anthropicPayload["system"] = configuration.SystemPrompt;
