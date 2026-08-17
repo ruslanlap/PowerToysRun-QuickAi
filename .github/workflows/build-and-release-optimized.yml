@@ -339,10 +339,11 @@ jobs:
 
       # Upload assets to EXISTING release (created by release-please with changelog)
       # Do NOT set name/body - would overwrite auto-generated changelog
+      # tag_name needs 'v' prefix since VERSION is stripped
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version.outputs.VERSION }}
+          tag_name: v${{ steps.version.outputs.VERSION }}
           files: release/*
           fail_on_unmatched_files: true
           append_body: false
