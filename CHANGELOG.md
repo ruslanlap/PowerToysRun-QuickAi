@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/ruslanlap/PowerToysRun-QuickAi/compare/v1.3.1...v1.4.0) (2026-08-17)
+
+
+### Features
+
+* add more AI provider presets + Anthropic support ([4c6447a](https://github.com/ruslanlap/PowerToysRun-QuickAi/commit/4c6447a07c5115a09428e319219016b3d27b7aa7))
+
 ## [1.3.1](https://github.com/ruslanlap/PowerToysRun-QuickAi/compare/v1.3.0...v1.3.1) (2026-08-17)
 
 
