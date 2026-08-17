@@ -1,9 +1,10 @@
 name: Build and Release QuickAi Plugin (Optimized)
 
 on:
-  release:
-    types: [published]
-  workflow_dispatch: # Allow manual trigger for testing
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: # Allow manual trigger for testing (including for existing tags)
 
 # Permissions for GITHUB_TOKEN (principle of least privilege)
 permissions:
@@ -167,7 +168,7 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'release' && github.event.action == 'published' 
+    if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v')
 
     steps:
       # OPTIMIZATION: Minimal checkout for release notes only
@@ -183,12 +184,14 @@ jobs:
       - name: Extract version
         id: version
         run: |
-          if [ -n "${GITHUB_REF}" ]; then
+          set -euo pipefail
+          if [ -n "${GITHUB_REF}" ] && [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-          elif [ -n "${RELEASE_TAG}" ]; then
+          elif [ -n "${RELEASE_TAG:-}" ]; then
             echo "VERSION=${RELEASE_TAG#v}" >> $GITHUB_OUTPUT
           else
-            echo "VERSION=unknown" >> $GITHUB_OUTPUT
+            echo "::error::Unable to determine version from GITHUB_REF or release event" >&2
+            exit 1
           fi
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
@@ -334,17 +337,15 @@ jobs:
             echo 'EOFMARKER'
           } >> $GITHUB_OUTPUT
 
-      # OPTIMIZATION: Use latest release action with better performance
-      - name: Create GitHub Release
+      # Upload assets to EXISTING release (created by release-please with changelog)
+      # Do NOT set name/body - would overwrite auto-generated changelog
+      - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
-          name: QuickAi v${{ steps.version.outputs.VERSION }}
-          body: ${{ steps.notes.outputs.NOTES }}
-          draft: false
-          prerelease: false
+          tag_name: ${{ steps.version.outputs.VERSION }}
           files: release/*
           fail_on_unmatched_files: true
-          generate_release_notes: false # We provide custom notes
+          append_body: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
