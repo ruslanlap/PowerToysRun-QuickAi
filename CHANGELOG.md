@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/ruslanlap/PowerToysRun-QuickAi/compare/v1.4.0...v1.4.1) (2026-08-17)
+
+
+### Bug Fixes
+
+* Anthropic temperature always sent (not gated by includeMaxTokens) ([b868300](https://github.com/ruslanlap/PowerToysRun-QuickAi/commit/b8683004e4f9ab986ff8e45ea1bcc4dbc7c07324))
+
 ## [1.4.0](https://github.com/ruslanlap/PowerToysRun-QuickAi/compare/v1.3.1...v1.4.0) (2026-08-17)
 
 
