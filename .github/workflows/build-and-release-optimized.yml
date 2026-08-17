@@ -161,7 +161,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: quickai-${{ matrix.platform }}
-          path: artifacts/*.zip
+          path: artifacts/
           retention-days: 7 # Reduce storage costs
           compression-level: 0 # Already compressed, skip re-compression
 
