@@ -1,9 +1,8 @@
 name: Build and Release QuickAi Plugin (Optimized)
 
 on:
-  push:
-    tags:
-      - 'v*'
+  release:
+    types: [published]
   workflow_dispatch: # Allow manual trigger for testing
 
 # Permissions for GITHUB_TOKEN (principle of least privilege)
@@ -168,7 +167,7 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'release' && github.event.action == 'published' 
 
     steps:
       # OPTIMIZATION: Minimal checkout for release notes only
@@ -183,7 +182,14 @@ jobs:
       # OPTIMIZATION: Fast version extraction with bash
       - name: Extract version
         id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: |
+          if [ -n "${GITHUB_REF}" ]; then
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          elif [ -n "${GITHUB_EVENT_NAME}" ] && [ "${GITHUB_EVENT_NAME}" = "release" ]; then
+            echo "VERSION=${GITHUB_EVENT_RELEASE_TAG_NAME#v}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=unknown" >> $GITHUB_OUTPUT
+          fi
 
       # OPTIMIZATION: Download artifacts with merge for faster processing
       - name: Download artifacts
