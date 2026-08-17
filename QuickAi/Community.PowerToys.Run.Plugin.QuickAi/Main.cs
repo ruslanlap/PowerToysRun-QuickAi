@@ -84,6 +84,19 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
         private const string ProviderGoogle = "Google";
         private const string ProviderOllama = "Ollama";
         private const string ProviderOpenAICompatible = "OpenAI Compatible";
+        private const string ProviderDeepSeek = "DeepSeek";
+        private const string ProviderOpenAI = "OpenAI";
+        private const string ProviderAnthropic = "Anthropic";
+        private const string ProviderMoonshot = "Moonshot (Kimi)";
+        private const string ProviderZhipu = "Zhipu (GLM)";
+        private const string ProviderQwen = "Qwen (Alibaba)";
+        private const string ProviderSiliconFlow = "SiliconFlow";
+        private const string ProviderMistral = "Mistral";
+        private const string ProviderXAI = "xAI (Grok)";
+        private const string ProviderGemini = "Gemini (Google)";
+        private const string ProviderPerplexity = "Perplexity";
+        private const string ProviderGroqDeepSeek = "Groq (DeepSeek)";
+        private const string ProviderOpenRouterDeepSeek = "OpenRouter (DeepSeek)";
 
         private const string ProviderOptionKey = "quickai_provider";
         private const string PrimaryKeyOptionKey = "quickai_primary_key";
@@ -111,7 +124,6 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
         private const int DefaultMaxTokens = 128;
         private const double DefaultTemperature = 0.2d;
         private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(10);
-
         // Configurable timeout settings
         private const int DefaultTimeoutSeconds = 8;
         private const int MinTimeoutSeconds = 3;
@@ -122,26 +134,78 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
 
         private static readonly List<string> SupportedProviders = new()
         {
-            ProviderGroq,
-            ProviderTogether,
-            ProviderFireworks,
-            ProviderOpenRouter,
+            ProviderAnthropic,
             ProviderCohere,
+            ProviderDeepSeek,
+            ProviderFireworks,
+            ProviderGemini,
             ProviderGoogle,
+            ProviderGroq,
+            ProviderGroqDeepSeek,
+            ProviderMistral,
+            ProviderMoonshot,
             ProviderOllama,
-            ProviderOpenAICompatible
+            ProviderOpenAI,
+            ProviderOpenAICompatible,
+            ProviderOpenRouter,
+            ProviderOpenRouterDeepSeek,
+            ProviderPerplexity,
+            ProviderQwen,
+            ProviderSiliconFlow,
+            ProviderTogether,
+            ProviderXAI,
+            ProviderZhipu
+        };
+
+        // Default model per provider preset (user can override in settings)
+        private static readonly IReadOnlyDictionary<string, string> DefaultModels = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [ProviderDeepSeek] = "deepseek-chat",
+            [ProviderOpenAI] = "gpt-4o-mini",
+            [ProviderAnthropic] = "claude-3-5-sonnet-latest",
+            [ProviderGroq] = "llama-3.1-8b-instant",
+            [ProviderTogether] = "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+            [ProviderFireworks] = "accounts/fireworks/models/llama-v3p1-8b-instruct",
+            [ProviderOpenRouter] = "openai/gpt-4o-mini",
+            [ProviderCohere] = "command-r-plus",
+            [ProviderGoogle] = "gemini-1.5-flash",
+            [ProviderGemini] = "gemini-1.5-flash",
+            [ProviderOllama] = "llama3.2",
+            [ProviderMoonshot] = "moonshot-v1-8k",
+            [ProviderZhipu] = "glm-4-flash",
+            [ProviderQwen] = "qwen-plus",
+            [ProviderSiliconFlow] = "deepseek-ai/DeepSeek-V3",
+            [ProviderMistral] = "mistral-small-latest",
+            [ProviderXAI] = "grok-2-latest",
+            [ProviderPerplexity] = "sonar",
+            [ProviderGroqDeepSeek] = "deepseek-r1-distill-llama-70b",
+            [ProviderOpenRouterDeepSeek] = "deepseek/deepseek-chat",
+            [ProviderOpenAICompatible] = "gpt-4o-mini"
         };
 
         private static readonly IReadOnlyDictionary<string, ProviderConfiguration> ProviderConfigurations =
             new Dictionary<string, ProviderConfiguration>(StringComparer.OrdinalIgnoreCase)
             {
+                [ProviderDeepSeek] = new("https://api.deepseek.com/v1/chat/completions", ProviderSchemaType.OpenAI),
+                [ProviderOpenAI] = new("https://api.openai.com/v1/chat/completions", ProviderSchemaType.OpenAI),
+                [ProviderAnthropic] = new("https://api.anthropic.com/v1/messages", ProviderSchemaType.Anthropic),
                 [ProviderGroq] = new("https://api.groq.com/openai/v1/chat/completions", ProviderSchemaType.OpenAI),
                 [ProviderTogether] = new("https://api.together.xyz/v1/chat/completions", ProviderSchemaType.OpenAI),
                 [ProviderFireworks] = new("https://api.fireworks.ai/inference/v1/chat/completions", ProviderSchemaType.OpenAI),
                 [ProviderOpenRouter] = new("https://openrouter.ai/api/v1/chat/completions", ProviderSchemaType.OpenAI),
                 [ProviderCohere] = new("https://api.cohere.com/v1/chat", ProviderSchemaType.Cohere),
                 [ProviderGoogle] = new("https://generativelanguage.googleapis.com/v1beta", ProviderSchemaType.Google),
+                [ProviderGemini] = new("https://generativelanguage.googleapis.com/v1beta", ProviderSchemaType.Google),
                 [ProviderOllama] = new("http://localhost:11434/v1/chat/completions", ProviderSchemaType.OpenAI),
+                [ProviderMoonshot] = new("https://api.moonshot.cn/v1/chat/completions", ProviderSchemaType.OpenAI),
+                [ProviderZhipu] = new("https://open.bigmodel.cn/api/paas/v4/chat/completions", ProviderSchemaType.OpenAI),
+                [ProviderQwen] = new("https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", ProviderSchemaType.OpenAI),
+                [ProviderSiliconFlow] = new("https://api.siliconflow.cn/v1/chat/completions", ProviderSchemaType.OpenAI),
+                [ProviderMistral] = new("https://api.mistral.ai/v1/chat/completions", ProviderSchemaType.OpenAI),
+                [ProviderXAI] = new("https://api.x.ai/v1/chat/completions", ProviderSchemaType.OpenAI),
+                [ProviderPerplexity] = new("https://api.perplexity.ai/chat/completions", ProviderSchemaType.OpenAI),
+                [ProviderGroqDeepSeek] = new("https://api.groq.com/openai/v1/chat/completions", ProviderSchemaType.OpenAI),
+                [ProviderOpenRouterDeepSeek] = new("https://openrouter.ai/api/v1/chat/completions", ProviderSchemaType.OpenAI),
                 [ProviderOpenAICompatible] = new("http://localhost/v1/chat/completions", ProviderSchemaType.OpenAI)
             };
 
@@ -849,6 +913,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                     token = configuration.SchemaType switch
                     {
                         ProviderSchemaType.OpenAI => ExtractOpenAiDelta(document.RootElement),
+                        ProviderSchemaType.Anthropic => ExtractAnthropicDelta(document.RootElement),
                         ProviderSchemaType.Cohere => ExtractCohereDelta(document.RootElement),
                         ProviderSchemaType.Google => ExtractGoogleDelta(document.RootElement),
                         _ => null
@@ -879,6 +944,7 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             string json;
 
             // Override endpoint for Ollama with custom host
+            // (All preset providers use their fixed endpoints; only Ollama/OpenAI Compatible honor the custom base URL)
             if (string.Equals(configuration.Provider, ProviderOllama, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(configuration.Provider, ProviderOpenAICompatible, StringComparison.OrdinalIgnoreCase))
             {
@@ -948,6 +1014,64 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                     }
                     // Note: Cohere v1/chat does not support image attachments
                     json = JsonSerializer.Serialize(coherePayload, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+                    });
+                    break;
+
+                case ProviderSchemaType.Anthropic:
+                    // Anthropic Messages API (https://docs.anthropic.com/en/api/messages)
+                    var anthropicMessages = new List<object>();
+
+                    // Conversation history (user/assistant pairs) before the new prompt
+                    if (history is not null)
+                    {
+                        foreach (var (role, content) in history)
+                        {
+                            if (string.Equals(role, "assistant", StringComparison.OrdinalIgnoreCase))
+                            {
+                                anthropicMessages.Add(new { role = "assistant", content });
+                            }
+                            else
+                            {
+                                anthropicMessages.Add(new { role = "user", content });
+                            }
+                        }
+                    }
+
+                    // User message with optional image
+                    if (hasImage)
+                    {
+                        var anthropicContent = new List<object>
+                        {
+                            new { type = "image", source = new { type = "base64", media_type = "image/png", data = imageBase64 } },
+                            new { type = "text", text = prompt }
+                        };
+                        anthropicMessages.Add(new { role = "user", content = anthropicContent });
+                    }
+                    else
+                    {
+                        anthropicMessages.Add(new { role = "user", content = prompt });
+                    }
+
+                    var anthropicPayload = new Dictionary<string, object>
+                    {
+                        ["model"] = configuration.Model,
+                        ["messages"] = anthropicMessages,
+                        ["max_tokens"] = Math.Max(includeMaxTokens ? configuration.MaxTokens : 1024, 1),
+                        ["stream"] = true
+                    };
+                    // Anthropic uses top_p/temperature; temperature is optional
+                    if (includeMaxTokens)
+                    {
+                        anthropicPayload["temperature"] = configuration.Temperature;
+                    }
+                    if (hasSystemPrompt)
+                    {
+                        anthropicPayload["system"] = configuration.SystemPrompt;
+                    }
+                    json = JsonSerializer.Serialize(anthropicPayload, new JsonSerializerOptions
                     {
                         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
@@ -1027,6 +1151,12 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             {
                 // Google uses x-goog-api-key header
                 request.Headers.TryAddWithoutValidation("x-goog-api-key", apiKey);
+            }
+            else if (providerConfiguration.SchemaType == ProviderSchemaType.Anthropic)
+            {
+                // Anthropic uses x-api-key + anthropic-version headers
+                request.Headers.TryAddWithoutValidation("x-api-key", apiKey);
+                request.Headers.TryAddWithoutValidation("anthropic-version", "2023-06-01");
             }
             else
             {
@@ -1121,6 +1251,25 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
             if (part.TryGetProperty("text", out var text) && text.ValueKind == JsonValueKind.String)
             {
                 return text.GetString();
+            }
+
+            return null;
+        }
+
+        private static string? ExtractAnthropicDelta(JsonElement root)
+        {
+            // Anthropic SSE: {"type":"content_block_delta","delta":{"type":"text_delta","text":"chunk"}}
+            if (root.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String)
+            {
+                var eventType = type.GetString();
+                if (string.Equals(eventType, "content_block_delta", StringComparison.OrdinalIgnoreCase) &&
+                    root.TryGetProperty("delta", out var delta) && delta.ValueKind == JsonValueKind.Object)
+                {
+                    if (delta.TryGetProperty("text", out var text) && text.ValueKind == JsonValueKind.String)
+                    {
+                        return text.GetString();
+                    }
+                }
             }
 
             return null;
@@ -1256,10 +1405,10 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
 
         private void ResetToDefaults()
         {
-            _provider = ProviderGroq;
+            _provider = ProviderDeepSeek;
             _primaryApiKey = null;
             _secondaryApiKey = null;
-            _modelName = DefaultModelName;
+            _modelName = DefaultModels.TryGetValue(ProviderDeepSeek, out var m) ? m : DefaultModelName;
             _maxTokens = DefaultMaxTokens;
             _temperature = DefaultTemperature;
             _timeoutSeconds = DefaultTimeoutSeconds;
@@ -1272,6 +1421,11 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
 
         private void ApplySettings(IEnumerable<PluginAdditionalOption> options)
         {
+            // Remember the previous provider so we can detect a switch and adopt the
+            // new preset's default model when the user hasn't customized the model.
+            var oldProvider = _provider;
+            var providerChanged = false;
+
             foreach (var option in options)
             {
                 if (option is null)
@@ -1285,7 +1439,9 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                         var index = option.ComboBoxValue;
                         if (index >= 0 && index < SupportedProviders.Count)
                         {
-                            _provider = SupportedProviders[index];
+                            var newProvider = SupportedProviders[index];
+                            providerChanged = !string.Equals(oldProvider, newProvider, StringComparison.OrdinalIgnoreCase);
+                            _provider = newProvider;
                         }
                         break;
                     case PrimaryKeyOptionKey:
@@ -1326,6 +1482,16 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
                         _userCommands = ParseCustomCommands(_customCommandsRaw);
                         break;
                 }
+            }
+
+            // If the provider changed and the model still equals the previous provider's
+            // preset default (user never customized it), adopt the new provider's default model.
+            if (providerChanged &&
+                DefaultModels.TryGetValue(oldProvider, out var oldDefault) &&
+                string.Equals(_modelName, oldDefault, StringComparison.OrdinalIgnoreCase) &&
+                DefaultModels.TryGetValue(_provider, out var newDefault))
+            {
+                _modelName = newDefault;
             }
         }
 
@@ -1488,7 +1654,8 @@ namespace Community.PowerToys.Run.Plugin.QuickAI
         {
             OpenAI,
             Cohere,
-            Google
+            Google,
+            Anthropic
         }
 
         private sealed record ProviderConfiguration(string Endpoint, ProviderSchemaType SchemaType);
