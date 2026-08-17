@@ -203,6 +203,10 @@ jobs:
           path: artifacts
           merge-multiple: true
 
+      # DEBUG: List downloaded artifacts
+      - name: Debug artifacts
+        run: ls -la artifacts/
+
       # OPTIMIZATION: Parallel checksum generation and artifact preparation
       - name: Prepare release assets
         run: |
