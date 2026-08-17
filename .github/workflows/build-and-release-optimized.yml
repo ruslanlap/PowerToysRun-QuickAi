@@ -262,22 +262,13 @@ jobs:
           ls -lh release/
 
       - name: Upload Release Assets
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.TAG_NAME }}
-          files: release/*
-          fail_on_unmatched_files: true
-          generate_release_notes: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  cleanup:
-    needs: release
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-      - name: Clean up artifacts
-        uses: geekyeggo/delete-artifact@v6
-        with:
-          name: quickai-*
-          failOnError: false
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.version.outputs.TAG_NAME }}"
+          echo "Uploading assets to release $TAG..."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" release/* --clobber
+          else
+            gh release create "$TAG" release/* --title "QuickAi $TAG" --generate-notes
+          fi
