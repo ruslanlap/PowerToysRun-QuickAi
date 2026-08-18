@@ -5,7 +5,6 @@ on: pull_request_target
 permissions:
   contents: write
   pull-requests: write
-  workflows: write
 
 jobs:
   dependabot-auto-merge:
@@ -17,4 +16,4 @@ jobs:
           gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          GH_TOKEN: ${{secrets.DEP_MERGE_TOKEN}}
